@@ -12,30 +12,30 @@ TARGET = Grad
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        appdatamodel.cpp \
-        dialog.cpp \
-        graphwidget.cpp \
-        imagecalculator.cpp \
-        imageprocessor.cpp \
-        imageshowcasewidget.cpp \
-        mainwindow.cpp \
-        qcustomplot.cpp \
-        utility.cpp
+SOURCES += src/main.cpp\
+        src/appdatamodel.cpp \
+        src/dialog.cpp \
+        src/graphwidget.cpp \
+        src/imagecalculator.cpp \
+        src/imageprocessor.cpp \
+        src/imageshowcasewidget.cpp \
+        src/mainwindow.cpp \
+        src/qcustomplot.cpp \
+        src/utility.cpp
 
-HEADERS  += mainwindow.h \
-    appdatamodel.h \
-    dialog.h \
-    graphwidget.h \
-    imagecalculator.h \
-    imageprocessingtypes.h \
-    imageprocessor.h \
-    imageshowcasewidget.h \
-    matrixlambdas.h \
-    qcustomplot.h
+HEADERS  += include/mainwindow.h \
+    include/appdatamodel.h \
+    include/dialog.h \
+    include/graphwidget.h \
+    include/imagecalculator.h \
+    include/imageprocessingtypes.h \
+    include/imageprocessor.h \
+    include/imageshowcasewidget.h \
+    include/matrixlambdas.h \
+    include/qcustomplot.h
 
-FORMS    += mainwindow.ui \
-    dialog.ui \
-    graphwidget.ui \
-    imagecalculator.ui \
-    imageshowcasewidget.ui
+FORMS    += ui/mainwindow.ui \
+    ui/dialog.ui \
+    ui/graphwidget.ui \
+    ui/imagecalculator.ui \
+    ui/imageshowcasewidget.ui
