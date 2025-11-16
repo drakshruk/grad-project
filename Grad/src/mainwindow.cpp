@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "../include/mainwindow.h"
 #include "ui_mainwindow.h"
 #include "utility.cpp"
 
@@ -6,6 +6,7 @@
  *
  */
 QPoint mPos;
+QVector<QPoint> selectedEdge;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -19,10 +20,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_dataModel, &AppDataModel::currentImageChanged, this, &MainWindow::on_imageUpdated);
     connect(imCalculator,&ImageCalculator::throw_imageCalculator , this, &MainWindow::catch_ImageCalculator);
 
-    iRad = 10;
-    dSigma = 5;
-    dRedMax = 255;
-    dBlueMax = 255;
+    m_dataModel->setBlueMax(255);
+    m_dataModel->setRedMax(255);
+    m_dataModel->setRadius(10);
+    m_dataModel->setSigma(5);
 
     getDataDialog = new Dialog();
 //    curImage = QImage("D:/projects/ERWS/Grad/files/fto2.png");
@@ -44,9 +45,9 @@ void MainWindow::on_actiongaussian_blur_triggered()
     this->getDataDialog->setPlaceholderText("Sigma value");
     if(getDataDialog->exec())
     {
-        dSigma = getDataDialog->value;
-        iRad = 3*dSigma;
-        curImage = ImageProcessor::convImage(curImage, ImageProcessor::getGauss(iRad,iRad,dSigma));
+        m_dataModel->setSigma(getDataDialog->value);
+        m_dataModel->setRadius(m_dataModel->sigma());
+        curImage = ImageProcessor::convImage(curImage, ImageProcessor::getGauss(m_dataModel->radius(),m_dataModel->radius(),m_dataModel->sigma()));
 //        ui->label->setPixmap(pixmap->fromImage(curImage));
 
         imageWidget->setImage(curImage);
@@ -128,7 +129,153 @@ void MainWindow::on_imageUpdated(const QImage &newImage)
 
 void MainWindow::on_actionpcr_edge_detection_triggered()
 {
+    if(edgeSelectionMode) { edgeSelectionMode = false; qDebug() << "edge selection off, starting edge refining"; }
 
+    int nSig = 8;
+    this->getDataDialog->setWindowTitle("Write the amount of sigms in the profile");
+    this->getDataDialog->setPlaceholderText("Amount of sigms");
+    if(getDataDialog->exec()){
+        nSig = int(getDataDialog->value);
+    }
+    qDebug() << "1.1";
+
+    Matrix2D<double> originalMat = ImageProcessor::fromGrayImage(m_dataModel->originalImage());
+
+    ImageShowcaseWidget* im = new ImageShowcaseWidget();
+    im->setImage(m_dataModel->originalImage());
+    im->show();
+
+    qDebug() << "1.11";
+    double sigma1 = m_dataModel->sigma();
+    double sigma2 = sigma1*1.5;
+    qDebug() << "1.12";
+    Matrix2D<double> blurredMat1 = ImageProcessor::convMat(originalMat,ImageProcessor::getGauss(m_dataModel->radius(), m_dataModel->radius(), sigma1));
+    qDebug() << "1.13";
+    Matrix2D<double> blurredMat2 = ImageProcessor::convMat(originalMat,ImageProcessor::getGauss(m_dataModel->radius(), m_dataModel->radius(), sigma2));
+    qDebug() << "1.2";
+
+    Matrix2D<double> xGradMat = ImageProcessor::convMat(originalMat, ImageProcessor::getXGradCore(m_dataModel->radius(), m_dataModel->radius(), sigma1));
+    Matrix2D<double> yGradMat = ImageProcessor::convMat(originalMat, ImageProcessor::getYGradCore(m_dataModel->radius(), m_dataModel->radius(), sigma1));
+
+    ImageShowcaseWidget* im1 = new ImageShowcaseWidget();
+    im1->setImage(ImageProcessor::toBlueRedImage(xGradMat,255,255));
+    im1->show();
+
+    ImageShowcaseWidget* im2 = new ImageShowcaseWidget();
+    im2->setImage(ImageProcessor::toBlueRedImage(yGradMat,255,255));
+    im2->show();
+
+    ImageShowcaseWidget* im3 = new ImageShowcaseWidget();
+    im3->setImage(ImageProcessor::toGrayImage(blurredMat1));
+    im3->show();
+
+    ImageShowcaseWidget* im4 = new ImageShowcaseWidget();
+    im4->setImage(ImageProcessor::toGrayImage(blurredMat2));
+    im4->show();
+
+    blurredMat1 = ImageProcessor::fromGrayImage(im3->getImage().toImage());
+    blurredMat2 = ImageProcessor::fromGrayImage(im4->getImage().toImage());
+    qDebug() << "1.3";
+
+    QImage tmp = im->getImage().toImage();
+    for(int i = 9; i < selectedEdge.size(); i++)
+    {
+
+        double xGrad = 0., yGrad = 0.;
+        xGrad = xGradMat[selectedEdge[i].x()][selectedEdge[i].y()];
+        yGrad = yGradMat[selectedEdge[i].x()][selectedEdge[i].y()];
+//        qDebug() << " xGrad: " << xGrad << " yGrad: " << yGrad;
+        double gradMag = sqrt(xGrad*xGrad + yGrad*yGrad);
+        if (gradMag > 1e-6) {
+            xGrad /= gradMag;
+            yGrad /= gradMag;
+        } else {
+            xGrad = 1.0;
+            yGrad = 0.0;
+        }
+
+//        qDebug() << "2.1";
+
+        ProfileParameters params;
+
+
+//        qDebug() << "2.2";
+//        qDebug() << " xGrad: " << xGrad << " yGrad: " << yGrad;
+        params.numSigma = nSig;
+        params.sigma = sigma1;
+        params.x0 = selectedEdge[i].x();
+        params.y0 = selectedEdge[i].y();
+        params.xGradient = xGrad;
+        params.yGradient = yGrad;
+
+        ProfileResult profile1 = ImageProcessor::buildProfile002(params, blurredMat1, 1);
+        ProfileResult profile2 = ImageProcessor::buildProfile002(params, blurredMat2, 1);
+        if(i <= 2){
+            GraphWidget* wid1 = new GraphWidget();
+            GraphWidget* wid2 = new GraphWidget();
+
+            QVector<double> x, y;
+            for(int i = 0; i < profile1.points.size(); i++){
+                x.push_back(profile1.points[i].x());
+                y.push_back(profile1.points[i].y());
+            }
+            wid1->plotGraph(x,y); wid1->show();
+
+            x.clear(); y.clear();
+            for(int i = 0; i < profile2.points.size(); i++){
+                x.push_back(profile2.points[i].x());
+                y.push_back(profile2.points[i].y());
+            }
+            wid2->plotGraph(x,y); wid2->show();
+
+        }
+//        qDebug() << "2.3";
+
+        std::pair<int,int> bounds = ImageProcessor::findProfileBounds(profile1.points, 5);
+        int left1 = bounds.first, right1 = bounds.second;
+
+//        qDebug() << "2.4";
+
+        QVector<QPointF> referenceProfile = profile1.points;
+        referenceProfile = ImageProcessor::cutProfile(referenceProfile, left1, right1);
+        referenceProfile = ImageProcessor::reInterpolateProfile(profile1.points, nSig*dSigma);
+
+//        qDebug() << "2.5";
+
+        int searchRange = 10;
+
+        std::pair<int,int> bounds2 = ImageProcessor::alignProfiles(referenceProfile, profile2.points, left1, right1, searchRange);
+        int left2 = bounds2.first, right2 = bounds2.second;
+
+//        qDebug() << "2.6";
+
+        double leftShift = abs(left1 - left2);
+        double rightShift = abs(right1 - right2);
+
+//        qDebug() << " profile1 size: " << profile1.points.size() << " profile2 size: " << profile2.points.size();
+//        qDebug() << " left1: " << left1 << " right1: " << right1;
+//        qDebug() << " left2: " << left2 << " right2: " << right2;
+//        qDebug() << " left shift: " << leftShift << " right shift: " << rightShift;
+    //    double x = (left1*rightShift - right1*leftShift)/(leftShift - rightShift);
+
+    //    double mu = nSig*dSigma*(-1. + 2.*x/nSig/dSigma);
+
+        double shift = (leftShift + rightShift) / 2.0;
+    //    int xNew = static_cast<int>(mu+0.5);
+    //    int yNew = (rightShift-leftShift)/(right1-left1);
+        int xNew = selectedEdge[i].x() + shift*xGrad;
+        int yNew = selectedEdge[i].y() + shift*yGrad;
+        qDebug() << " New x: " << xNew << " New y: " << yNew;
+        qDebug() << " Old x: " << selectedEdge[i].x() << " Old y: " << selectedEdge[i].y();
+        qDebug() << " residual: " << ImageProcessor::calculateResidualOfProfiles(
+                        ImageProcessor::reInterpolateProfile(ImageProcessor::cutProfile(profile1.points,left1,right1),100),
+                        ImageProcessor::reInterpolateProfile(ImageProcessor::cutProfile(profile2.points,left2,right2),100));
+        tmp.setPixel(xNew, yNew, qRgb(255,0,0));
+        tmp.setPixel(selectedEdge[i].x(), selectedEdge[i].y(), qRgb(0,0,255));
+        im->setImage(tmp);
+    }
+    m_dataModel->setCurrentImage(im->getImage().toImage());
+    qDebug() << "edge size: " << selectedEdge.size();
 }
 
 void MainWindow::on_actionopen_file_triggered()
@@ -167,8 +314,9 @@ void MainWindow::mousePressEvent(QMouseEvent *e)
                 }
             }
         }
-        QVector<QPoint> selectedEdge;
+        selectedEdge.clear();
         ImageProcessor::selectEdge(mPos, attMat, selectedEdge);
+        m_dataModel->setSelectedEdge(selectedEdge);
         for(int i = 0; i < selectedEdge.size(); i++){
             curImage.setPixel(selectedEdge[i],qRgb(0,255,255));
         }
@@ -304,22 +452,22 @@ void MainWindow::on_actiontest_triggered()
     GrWid->plotGraph(x,y);
     GraphWidget* GrWid1 = new GraphWidget();
     GraphWidget* GrWid2 = new GraphWidget();
-    ProfileResult cutProf = ImageProcessor::cutProfile(profile, 5);
+    QVector<QPointF> cutProf = ImageProcessor::cutProfile(profile.points, 5);
     QVector<double> x1, y1;
     QVector<double> x2, y2;
-    for(int i = 0; i < cutProf.points.size(); i++){
-        x1.push_back(cutProf.points[i].x());
-        y1.push_back(cutProf.points[i].y());
+    for(int i = 0; i < cutProf.size(); i++){
+        x1.push_back(cutProf[i].x());
+        y1.push_back(cutProf[i].y());
     }
     GrWid1->plotGraph(x1,y1);
     GrWid1->show();
     edgeSelectionMode = false;
     qDebug() << 5;
-    ProfileResult toTestReInt = ImageProcessor::reInterpolateProfile(cutProf, 100);
+    QVector<QPointF> toTestReInt = ImageProcessor::reInterpolateProfile(cutProf, 100);
 
-    for(int i = 0; i < toTestReInt.points.size(); i++){
-        x2.push_back(toTestReInt.points[i].x());
-        y2.push_back(toTestReInt.points[i].y());
+    for(int i = 0; i < toTestReInt.size(); i++){
+        x2.push_back(toTestReInt[i].x());
+        y2.push_back(toTestReInt[i].y());
     }
     GrWid2->plotGraph(x2,y2);
     GrWid2->plotTwoGraphs(x1,y1,x2,y2);
@@ -339,13 +487,17 @@ void MainWindow::on_actiondraw_profile_triggered()
 
 void MainWindow::on_actionTwo_hollows_triggered()
 {
-    m_dataModel->setCurrentImage(ImageProcessor::sampleTwoHollows());
+    QImage setImage = ImageProcessor::sampleTwoHollows();
+    m_dataModel->setCurrentImage(setImage);
+    m_dataModel->setOriginalImage(setImage);
 //    setImage(sampleTwoHollows());
 }
 
 void MainWindow::on_actionTwo_hollows_big_triggered()
 {
-    m_dataModel->setCurrentImage(ImageProcessor::sampleTwoHollowsBig());
+    QImage setImage = ImageProcessor::sampleTwoHollowsBig();
+    m_dataModel->setCurrentImage(setImage);
+    m_dataModel->setOriginalImage(setImage);
 //    setImage(sampleTwoHollowsBig());
 }
 

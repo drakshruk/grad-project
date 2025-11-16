@@ -1,4 +1,4 @@
-#include "appdatamodel.h"
+#include "../include/appdatamodel.h"
 
 AppDataModel::AppDataModel(QObject *parent)
 {
@@ -12,7 +12,6 @@ QImage AppDataModel::currentImage() const
 
 void AppDataModel::setCurrentImage(const QImage &newCurrentImage)
 {
-    m_originalImage = newCurrentImage;
     m_currentImage = newCurrentImage;
     emit currentImageChanged(newCurrentImage);
 }
@@ -20,6 +19,21 @@ void AppDataModel::setCurrentImage(const QImage &newCurrentImage)
 QImage AppDataModel::originalImage() const
 {
     return m_originalImage;
+}
+
+void AppDataModel::setOriginalImage(const QImage &newOriginalImage)
+{
+   m_originalImage = newOriginalImage;
+}
+
+QVector<QPoint> AppDataModel::selectedEdge() const
+{
+    return m_selectedEdge;
+}
+
+void AppDataModel::setSelectedEdge(const QVector<QPoint> &newSelectedEdge)
+{
+    m_selectedEdge = newSelectedEdge;
 }
 
 double **AppDataModel::imageMatrix() const

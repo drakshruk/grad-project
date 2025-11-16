@@ -1,4 +1,4 @@
-#include "imageprocessor.h"
+#include "../include/imageprocessor.h"
 
 /*
 // * EN:
@@ -367,13 +367,13 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
     double normalizedXGrad = params.xGradient / gradientMagnitude;
     double normalizedYGrad = params.yGradient / gradientMagnitude;
 
-    qDebug() << "1 - Gradient normalized:" << normalizedXGrad << normalizedYGrad;
+//    qDebug() << "1 - Gradient normalized:" << normalizedXGrad << normalizedYGrad;
 
     int kernelSize = 2 * convRad + 1;
     Matrix2D<double> convCore = getLapl(kernelSize, kernelSize, params.sigma);
 
     if (convCore.size() != kernelSize || convCore[0].size() != kernelSize) {
-        qDebug() << "Error: Convolution core has wrong size!" << convCore.size() << convCore[0].size();
+//        qDebug() << "Error: Convolution core has wrong size!" << convCore.size() << convCore[0].size();
         return result;
     }
 
@@ -381,7 +381,7 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
 
     if (numSteps <= 0) {
         numSteps = 50;
-        qDebug() << "Warning: numSteps was" << numSteps << ", using default 50";
+//        qDebug() << "Warning: numSteps was" << numSteps << ", using default 50";
     }
 
     result.points.clear();
@@ -389,7 +389,7 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
     result.points.reserve(numSteps);
     result.indices.reserve(numSteps);
 
-    qDebug() << "2 - Starting profile with" << numSteps << "steps";
+//    qDebug() << "2 - Starting profile with" << numSteps << "steps";
 
     for (int step = 0; step < numSteps; ++step) {
         double muS = -params.numSigma * params.sigma +
@@ -401,12 +401,12 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
         int xCoord = static_cast<int>(std::round(x));
         int yCoord = static_cast<int>(std::round(y));
 
-        qDebug() << "Step" << step << ": (" << xCoord << "," << yCoord << ")";
+//        qDebug() << "Step" << step << ": (" << xCoord << "," << yCoord << ")";
 
         if (xCoord < 0 || xCoord >= rows || yCoord < 0 || yCoord >= cols) {
             result.points.push_back(QPointF(static_cast<double>(step), 0.0));
             result.indices.push_back(QPoint(xCoord, yCoord));
-            qDebug() << "  Out of bounds -> (0,0)";
+//            qDebug() << "  Out of bounds -> (0,0)";
         } else {
             double yProf = 0.0;
 
@@ -417,7 +417,7 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
 
                     if (kernel_i < 0 || kernel_i >= kernelSize ||
                         kernel_j < 0 || kernel_j >= kernelSize) {
-                        qDebug() << "  Kernel index error:" << kernel_i << kernel_j;
+//                        qDebug() << "  Kernel index error:" << kernel_i << kernel_j;
                         continue;
                     }
 
@@ -435,11 +435,11 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
 
             result.points.push_back(QPointF(static_cast<double>(step), yProf));
             result.indices.push_back(QPoint(xCoord, yCoord));
-            qDebug() << "  Value:" << yProf;
+//            qDebug() << "  Value:" << yProf;
         }
     }
 
-    qDebug() << "3 - Profile completed with" << result.points.size() << "points";
+//    qDebug() << "3 - Profile completed with" << result.points.size() << "points";
     return result;
 }
 
@@ -451,15 +451,15 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
  *  obrezayet profil' ot seredini do blizhayshih lokal'nogo minimuma i maksimuma
  *  i shagayet yeshche 'step' pikseley vlevo i vpravo
  */
-const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int step)
+const QVector<QPointF> ImageProcessor::cutProfile(const QVector<QPointF> &profile, int step)
 {
-    ProfileResult res;
-    int left = profile.points.size()/2, right = profile.points.size()/2;
-    bool leftIncr = true, rightIncr = true, decrLeft = (profile.points[left-1].y() < profile.points[left].y());
+    QVector<QPointF> res;
+    int left = profile.size()/2, right = profile.size()/2;
+    bool leftIncr = true, rightIncr = true, decrLeft = (profile[left-1].y() < profile[left].y());
     while(leftIncr || rightIncr){
-        if(left <= 0 || right >= profile.points.size()-1) break;
+        if(left <= 0 || right >= profile.size()-1) break;
         if(decrLeft){
-            if(profile.points[left-1].y() < profile.points[left].y() && leftIncr){
+            if(profile[left-1].y() < profile[left].y() && leftIncr){
                 left--;
             }
             else if(leftIncr){
@@ -467,17 +467,17 @@ const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int
                 else left -= step;
                 leftIncr = false;
             }
-            if(profile.points[right+1].y() > profile.points[right].y() && rightIncr){
+            if(profile[right+1].y() > profile[right].y() && rightIncr){
                 right++;
             }
             else if(rightIncr){
-                if(right > profile.points.size() - step - 1) right = profile.points.size() - 1;
+                if(right > profile.size() - step - 1) right = profile.size() - 1;
                 else right += step;
                 rightIncr = false;
             }
         }
         else{
-            if(profile.points[left-1].y() > profile.points[left].y() && leftIncr){
+            if(profile[left-1].y() > profile[left].y() && leftIncr){
                 left--;
             }
             else if(leftIncr){
@@ -486,24 +486,21 @@ const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int
                 leftIncr = false;
             }
         }
-        if(profile.points[right+1].y() < profile.points[right].y() && rightIncr){
+        if(profile[right+1].y() < profile[right].y() && rightIncr){
             right++;
         }
         else if(rightIncr){
-            if(right > profile.points.size() - step - 1) right = profile.points.size() - 1;
+            if(right > profile.size() - step - 1) right = profile.size() - 1;
             else right += step;
             rightIncr = false;
         }
     }
 
-    res.points.clear();
-    res.indices.clear();
-    res.points.reserve(right - left);
-    res.indices.reserve(right - left);
+    res.clear();
+    res.reserve(right - left);
 
     for(int i = left; i < right; i++){
-        res.points.push_back(profile.points[i]);
-        res.indices.push_back(profile.indices[i]);
+        res.push_back(profile[i]);
     }
     return res;
 }
@@ -514,21 +511,71 @@ const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int
  * RU:
  *  obrezayet profil' sleva napravo
  */
-const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int left, int right)
+const QVector<QPointF> ImageProcessor::cutProfile(const QVector<QPointF> &profile, int left, int right)
 {
-    ProfileResult result;
+    QVector<QPointF> result;
     if(left < 0) left = 0;
-    if(right >= profile.points.size()) right = profile.points.size() - 1;
+    if(right >= profile.size()) right = profile.size() - 1;
     int tmp = left;
     left = left > right ? right : left;
     right = tmp > right ? tmp : right;
     for(int i = left; i <= right; i++){
-        if(i < profile.points.size()){
-            result.indices.push_back(profile.indices[i]);
-            result.points.push_back(profile.points[i]);
+        if(i < profile.size()){
+            result.push_back(profile[i]);
         }
     }
     return result;
+}
+
+const std::pair<int,int> ImageProcessor::findProfileBounds(const QVector<QPointF> profile, int step)
+{
+    if (profile.size() < 3) {
+            return {0, profile.size() - 1};
+    }
+
+    int center = profile.size() / 2;
+    int leftBound = center, rightBound = center;
+    bool leftIncr = true, rightIncr = true, decrLeft = (profile[leftBound-1].y() < profile[leftBound].y());
+    while(leftIncr || rightIncr){
+        if(leftBound <= 0 || rightBound >= profile.size()-1) break;
+        if(decrLeft){
+            if(profile[leftBound-1].y() < profile[leftBound].y() && leftIncr){
+                leftBound--;
+            }
+            else if(leftIncr){
+                if(leftBound < step) leftBound = 0;
+                else leftBound -= step;
+                leftIncr = false;
+            }
+            if(profile[rightBound+1].y() > profile[rightBound].y() && rightIncr){
+                rightBound++;
+            }
+            else if(rightIncr){
+                if(rightBound > profile.size() - step - 1) rightBound = profile.size() - 1;
+                else rightBound += step;
+                rightIncr = false;
+            }
+        }
+        else{
+            if(profile[leftBound-1].y() > profile[leftBound].y() && leftIncr){
+                leftBound--;
+            }
+            else if(leftIncr){
+                if(leftBound < step) leftBound = 0;
+                else leftBound -= step;
+                leftIncr = false;
+            }
+        }
+        if(profile[rightBound+1].y() < profile[rightBound].y() && rightIncr){
+            rightBound++;
+        }
+        else if(rightIncr){
+            if(rightBound > profile.size() - step - 1) rightBound = profile.size() - 1;
+            else rightBound += step;
+            rightIncr = false;
+        }
+    }
+    return {leftBound, rightBound};
 }
 
 /*
@@ -537,9 +584,34 @@ const ProfileResult ImageProcessor::cutProfile(const ProfileResult &profile, int
  * RU:
  *
  */
-void ImageProcessor::alignProfiles(QVector<QPointF> &profile1, QVector<QPointF> &profile2, int len)
+std::pair<int,int> ImageProcessor::alignProfiles(QVector<QPointF> &profileForReference, QVector<QPointF> &profileToAlign, int left, int right, int searchRange)
 {
+    if(profileForReference.empty() || profileToAlign.empty()) return {-1,-1};
 
+    std::pair<int,int> optimalShift = {0,0};
+
+    double minResidual = std::numeric_limits<double>::max();
+
+    int leftEdge = left - searchRange;
+    leftEdge = leftEdge < 0 ? 0 : leftEdge;
+
+    int rightEdge = right + searchRange;
+    rightEdge = rightEdge >= profileToAlign.size() ? profileToAlign.size() - 1 : rightEdge;
+
+    for(int leftIncr = leftEdge; leftIncr <= left; leftIncr++){
+        for(int rightIncr = rightEdge; rightIncr >= right; rightIncr--){
+
+            QVector<QPointF> shiftedProfile = cutProfile(profileToAlign, leftIncr, rightIncr);
+            shiftedProfile = reInterpolateProfile(shiftedProfile, profileForReference.size());
+
+            double tmp = calculateResidualOfProfiles(profileForReference,shiftedProfile);
+            if(tmp < minResidual) {
+                optimalShift = {leftIncr,rightIncr};
+                minResidual = tmp;
+            }
+        }
+    }
+    return optimalShift;
 }
 
 /*
@@ -548,12 +620,12 @@ void ImageProcessor::alignProfiles(QVector<QPointF> &profile1, QVector<QPointF> 
  * RU:
  *  vozvrashchaet summu kvadratov raznostey znacheniy y profile1 i profile2
  */
-double ImageProcessor::differenceOfTwoProfiles(const ProfileResult &profile1, const ProfileResult &profile2)
+double ImageProcessor::differenceOfTwoProfiles(const QVector<QPointF> &profile1, const QVector<QPointF> &profile2)
 {
-    if(profile1.points.size() != profile2.points.size()) return -1;
+    if(profile1.size() != profile2.size()) return -1;
     double res = 0.0;
-    for(int i = 0; i < profile1.points.size(); i++){
-        res += (profile1.points[i].y() - profile2.points[i].y()) * (profile1.points[i].y() - profile2.points[i].y());
+    for(int i = 0; i < profile1.size(); i++){
+        res += (profile1[i].y() - profile2[i].y()) * (profile1[i].y() - profile2[i].y());
     }
     return res;
 }
@@ -566,23 +638,21 @@ double ImageProcessor::differenceOfTwoProfiles(const ProfileResult &profile1, co
  *  pereinterpolirayet profil' do novoy dliny
  *  ispol'zuya lineynuyu interpolyatsiyu
  */
-const ProfileResult ImageProcessor::reInterpolateProfile(const ProfileResult &profile, int newLen)
+const QVector<QPointF> ImageProcessor::reInterpolateProfile(const QVector<QPointF> &profile, int newLen)
 {
-    ProfileResult newProfile;
+    QVector<QPointF> newProfile;
 
-    newProfile.points.clear();
-    newProfile.indices.clear();
-    newProfile.points.reserve(newLen);
-    newProfile.indices.reserve(newLen);
+    newProfile.clear();
+    newProfile.reserve(newLen);
 
-    if (profile.points.size() < 2 || newLen <= 0) {
+    if (profile.size() < 2 || newLen <= 0) {
         return profile;
     }
 
-    double xL1 = profile.points.front().x();
-    double xR1 = profile.points.back().x();
+    double xL1 = profile.front().x();
+    double xR1 = profile.back().x();
 
-    newProfile.points.reserve(newLen);
+    newProfile.reserve(newLen);
 
     double dxNew = (xR1 - xL1) / (newLen - 1);
 
@@ -590,23 +660,23 @@ const ProfileResult ImageProcessor::reInterpolateProfile(const ProfileResult &pr
         double x = xL1 + i * dxNew;
 
         int segmentIndex = 0;
-        while (segmentIndex < profile.points.size() - 1 && profile.points[segmentIndex + 1].x() < x) {
+        while (segmentIndex < profile.size() - 1 && profile[segmentIndex + 1].x() < x) {
             segmentIndex++;
         }
 
-        if (segmentIndex >= profile.points.size() - 1) {
-            newProfile.points.append(QPointF(profile.points.size()-1,profile.points.last().y()));
+        if (segmentIndex >= profile.size() - 1) {
+            newProfile.append(QPointF(profile.size()-1,profile.last().y()));
             continue;
         }
 
-        const QPointF& p1 = profile.points.at(segmentIndex);
-        const QPointF& p2 = profile.points.at(segmentIndex + 1);
+        const QPointF& p1 = profile.at(segmentIndex);
+        const QPointF& p2 = profile.at(segmentIndex + 1);
 
         if (p2.x() == p1.x()) {
-            newProfile.points.append(QPointF(i, p1.y()));
+            newProfile.append(QPointF(i, p1.y()));
         } else {
             double y = p1.y() + (x - p1.x()) * (p2.y() - p1.y()) / (p2.x() - p1.x());
-            newProfile.points.append(QPointF(i, y));
+            newProfile.append(QPointF(i, y));
         }
     }
     return newProfile;
@@ -1267,4 +1337,21 @@ const QImage ImageProcessor::sampleTwoHollows()
         }
     }
     return res;
+}
+
+double ImageProcessor::calculateResidualOfProfiles(const QVector<QPointF> &profile1, const QVector<QPointF> &profile2)
+{
+    if (profile1.size() != profile2.size() || profile1.isEmpty()) {
+        return std::numeric_limits<double>::max();
+    }
+
+
+    long double sumSquared = 0.0;
+    for (int i = 0; i < profile1.size(); ++i) {
+        long double diff = profile1[i].y() - profile2[i].y();
+        sumSquared += diff * diff;
+    }
+
+    return sqrt(sumSquared / profile1.size());
+
 }

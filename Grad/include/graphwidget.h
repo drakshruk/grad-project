@@ -2,7 +2,7 @@
 #define GRAPHWIDGET_H
 
 #include <QWidget>
-#include <qcustomplot.h>
+#include "qcustomplot.h"
 
 namespace Ui {
 class GraphWidget;

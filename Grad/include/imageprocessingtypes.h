@@ -6,7 +6,7 @@
 #include <QPoint>
 #include <cmath>
 #include <QDebug>
-#include <matrixlambdas.h>
+#include "matrixlambdas.h"
 
 template<typename T>
 using Matrix2D = std::vector<std::vector<T>>;

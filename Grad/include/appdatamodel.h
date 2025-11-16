@@ -15,7 +15,12 @@ public:
     QImage currentImage() const;
     void setCurrentImage(const QImage &newCurrentImage);
 
+
     QImage originalImage() const;
+    void setOriginalImage(const QImage &newOriginalImage);
+
+    QVector<QPoint> selectedEdge() const;
+    void setSelectedEdge(const QVector<QPoint> &newSelectedEdge);
 
     double** imageMatrix() const;
     void setImageMatrix(double** newImageMatrix);
@@ -35,6 +40,7 @@ public:
     double blueMax() const;
     void setBlueMax(double newBlueMax);
 
+
 signals:
     void currentImageChanged(const QImage &image);
 //    void sigmaChanged(double sigma);
@@ -45,6 +51,7 @@ signals:
 private:
     QImage m_currentImage;
     QImage m_originalImage;
+    QVector<QPoint> m_selectedEdge;
     double** m_imageMatrix = nullptr;
     int** m_attribiteMatrix = nullptr;
     double** m_matForProfile = nullptr;

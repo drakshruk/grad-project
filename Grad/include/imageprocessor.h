@@ -1,7 +1,7 @@
 #ifndef IMAGEPROCESSOR_H
 #define IMAGEPROCESSOR_H
 
-#include <imageprocessingtypes.h>
+#include "imageprocessingtypes.h"
 
 namespace ImageProcessor {
 
@@ -79,15 +79,19 @@ namespace ImageProcessor {
 
     const ProfileResult buildProfile002(const ProfileParameters &params, const Matrix2D<double> &ddImMat, int convRad);
 
-    const ProfileResult cutProfile(const ProfileResult &profile, int step);
+    const QVector<QPointF> cutProfile(const QVector<QPointF> &profile, int step);
 
-    const ProfileResult cutProfile(const ProfileResult &profile, int left, int right);
+    const QVector<QPointF> cutProfile(const QVector<QPointF> &profile, int left, int right);
 
-    void alignProfiles(QVector<QPointF> &profile1, QVector<QPointF> &profile2, int len);
+    const std::pair<int,int> findProfileBounds(const QVector<QPointF> profile, int step);
 
-    double differenceOfTwoProfiles(const ProfileResult &profile1, const ProfileResult &profile2);
+    std::pair<int,int> alignProfiles(QVector<QPointF> &profileForReference, QVector<QPointF> &profileToAlign, int left, int right, int searchRange);
 
-    const ProfileResult reInterpolateProfile(const ProfileResult &profile, int newLen);
+    double calculateResidualOfProfiles(const QVector<QPointF>& profile1, const QVector<QPointF>& profile2);
+
+    double differenceOfTwoProfiles(const QVector<QPointF> &profile1, const QVector<QPointF> &profile2);
+
+    const QVector<QPointF> reInterpolateProfile(const QVector<QPointF> &profile, int newLen);
 
     const Matrix2D<double> fromGrayImage(const QImage &image);
 

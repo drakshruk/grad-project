@@ -12,13 +12,13 @@
 #include <QTextStream>
 #include <QMouseEvent>
 #include <QFileDialog>
-#include <dialog.h>
+#include "dialog.h"
 #include <QDebug>
-#include <graphwidget.h>
-#include <appdatamodel.h>
-#include <imagecalculator.h>
-#include <imageshowcasewidget.h>
-#include <imageprocessor.h>
+#include "graphwidget.h"
+#include "appdatamodel.h"
+#include "imagecalculator.h"
+#include "imageshowcasewidget.h"
+#include "imageprocessor.h"
 
 namespace Ui {
 class MainWindow;
