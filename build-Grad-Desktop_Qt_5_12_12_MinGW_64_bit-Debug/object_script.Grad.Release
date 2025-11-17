@@ -1,0 +1,16 @@
+release/main.o
+release/appdatamodel.o
+release/dialog.o
+release/graphwidget.o
+release/imagecalculator.o
+release/imageprocessor.o
+release/imageshowcasewidget.o
+release/mainwindow.o
+release/qcustomplot.o
+release/moc_mainwindow.o
+release/moc_appdatamodel.o
+release/moc_dialog.o
+release/moc_graphwidget.o
+release/moc_imagecalculator.o
+release/moc_imageshowcasewidget.o
+release/moc_qcustomplot.o
