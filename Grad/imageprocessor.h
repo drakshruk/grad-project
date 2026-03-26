@@ -5,57 +5,9 @@
 
 namespace ImageProcessor {
 
-    const QImage substractTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage addTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage multiplyTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage divideTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage minTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage maxTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage AND_TwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage OR_TwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage XOR_TwoImagess(const QImage &Im1, const QImage &Im2);
-
-    const QImage averageTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage differenceTwoImages(const QImage &Im1, const QImage &Im2);
-
-    const QImage transparentZeroTwoImages(const QImage &Im1, const QImage &Im2);
-
     bool containsVP(QVector<QPoint> &vec, QPoint p);
 
     void selectEdge(QPoint pos, Matrix2D<int> &iiImAttMat, QVector<QPoint> &selectedEdge);
-
-//    const Matrix2D<double> substractTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> addTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> multiplyTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> divideTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> minTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> maxTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> AND_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> OR_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> XOR_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> averageTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> differenceTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
-
-//    const Matrix2D<double> transparentZeroTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2);
 
     template <typename T, typename Operation>
     const Matrix2D<T> elementWiseOperation(const Matrix2D<T> &mat1, const Matrix2D<T> &mat2, Operation op)
@@ -75,6 +27,8 @@ namespace ImageProcessor {
         return res;
     }
 
+    RefinementResult refineSinglePoint(int n0, int m0, RefinementParameters params);
+
     const ProfileResult buildProfile001(const ProfileParameters &params, const Matrix2D<double> &ddImMat);
 
     const ProfileResult buildProfile002(const ProfileParameters &params, const Matrix2D<double> &ddImMat, int convRad);
@@ -83,15 +37,13 @@ namespace ImageProcessor {
 
     const QVector<QPointF> cutProfile(const QVector<QPointF> &profile, int left, int right);
 
-    const std::pair<int,int> findProfileBounds(const QVector<QPointF> profile, int step);
-
-    std::pair<int,int> alignProfiles(QVector<QPointF> &profileForReference, QVector<QPointF> &profileToAlign, int left, int right, int searchRange);
-
     double calculateResidualOfProfiles(const QVector<QPointF>& profile1, const QVector<QPointF>& profile2);
 
     double differenceOfTwoProfiles(const QVector<QPointF> &profile1, const QVector<QPointF> &profile2);
 
-    const QVector<QPointF> reInterpolateProfile(const QVector<QPointF> &profile, int newLen);
+    const QVector<QPointF> reInterpolateProfile( const QVector<QPointF> &profile, int newLen);
+
+    const QVector<QPointF> reInterpolateProfile(const QVector<QPointF> &profile, double leftBound, double rightBound, int newLen);
 
     const Matrix2D<double> fromGrayImage(const QImage &image);
 

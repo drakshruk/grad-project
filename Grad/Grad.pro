@@ -20,8 +20,7 @@ SOURCES += main.cpp\
         imageprocessor.cpp \
         imageshowcasewidget.cpp \
         mainwindow.cpp \
-        qcustomplot.cpp \
-        utility.cpp
+        qcustomplot.cpp
 
 HEADERS  += mainwindow.h \
     appdatamodel.h \

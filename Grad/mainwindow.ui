@@ -6,30 +6,22 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>658</width>
-    <height>107</height>
+    <width>624</width>
+    <height>91</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="label">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   <layout class="QGridLayout" name="gridLayout"/>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>658</width>
+     <width>624</width>
      <height>25</height>
     </rect>
    </property>
@@ -56,6 +48,7 @@
      <string>tools</string>
     </property>
     <addaction name="actiontest"/>
+    <addaction name="actiontest_002"/>
     <addaction name="actiondraw_profile"/>
     <addaction name="actionimage_calculator"/>
    </widget>
@@ -112,7 +105,7 @@
   </action>
   <action name="actiontest">
    <property name="text">
-    <string>test</string>
+    <string>test_001</string>
    </property>
   </action>
   <action name="actiondraw_profile">
@@ -143,6 +136,11 @@
   <action name="actionsharpen">
    <property name="text">
     <string>sharpen</string>
+   </property>
+  </action>
+  <action name="actiontest_002">
+   <property name="text">
+    <string>test_002</string>
    </property>
   </action>
  </widget>

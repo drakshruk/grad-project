@@ -1,250 +1,6 @@
 #include "imageprocessor.h"
 
 /*
-// * EN:
-// *  substracts Image2 from Image1
-// * RU:
-// *  vichitaet Image2 iz Image1
-// *
-//const QImage ImageProcessor::substractTwoImages(const QImage &Im1, const QImage &Im2)
-//{
-//    QImage res(Im1.width(),Im1.height(),QImage::Format_ARGB32);
-//    for(int i = 0; i < Im1.width(); i++){
-//        for(int j = 0; j < Im1.height(); j++){
-//            res.setPixel(i,j,qRgb(abs(qRed(Im1.pixel(i,j)) - qRed(Im2.pixel(i,j))),
-//                                   abs(qGreen(Im1.pixel(i,j)) - qGreen(Im2.pixel(i,j))),
-//                                   abs(qBlue(Im1.pixel(i,j)) - qBlue(Im2.pixel(i,j)))));
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  substracts ddMat2 from ddMat1 with 0 sampling
-// * RU:
-// *  vichitaet ddMat2 iz ddMat1
-// *
-//const Matrix2D<double> ImageProcessor::substractTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-////            if(res[i][j] < 0.0) res[i][j] = 0.0; //
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  adds ddMat2 to ddMat1 with 255 sampling
-// * RU:
-// *  pribavlyaet ddMat2 k ddMat1
-// *
-//const Matrix2D<double> ImageProcessor::addTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = ddMat1[i][j] + ddMat2[i][j];
-//            if(res[i][j] > 255.0) res[i][j] = 255.0; //
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  multiples ddMat1 by ddMat2 with 255 sampling
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::multiplyTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = ddMat1[i][j] * ddMat2[i][j];
-//            if(res[i][j] > 255.0) res[i][j] = 255.0; //
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  divides ddMat1 by ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::divideTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            if(abs(ddMat2[i][j]) < 1e-6) res[i][j] = 255.;
-//            else res[i][j] = ddMat1[i][j] / ddMat2[i][j];
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to min between ddMat1 and ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::minTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = min(ddMat1[i][j],ddMat2[i][j]);
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to max between ddMat1 and ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::maxTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = max(ddMat1[i][j],ddMat2[i][j]);
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to ddMat1 AND ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::AND_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = static_cast<int>(ddMat1[i][j]) & static_cast<int>(ddMat2[i][j]);
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to ddMat1 OR ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::OR_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = static_cast<int>(ddMat1[i][j]) | static_cast<int>(ddMat2[i][j]);
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to ddMat1 XOR ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::XOR_TwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = static_cast<int>(ddMat1[i][j]) ^ static_cast<int>(ddMat2[i][j]);
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to average between ddMat1 and ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::averageTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = (ddMat1[i][j] + ddMat2[i][j]) / 2.;
-//        }
-//    }
-//    return res;
-//}
-
-///*
-// * EN:
-// *  sets pixels to absolute difference between ddMat1 and ddMat2
-// * RU:
-// *
-// *
-//const Matrix2D<double> ImageProcessor::differenceTwoMatrices(const Matrix2D<double> &ddMat1, const Matrix2D<double> &ddMat2)
-//{
-//    size_t w = min(ddMat1.size(), ddMat2.size());
-//    size_t h = min(ddMat1[0].size(), ddMat2[0].size());
-//    Matrix2D<double> res(ddMat1.size(), std::vector<double>(ddMat1[0].size(), 0.0));
-//    for(size_t i = 0; i < w; i++){
-//        for(size_t j = 0; j < h; j++){
-//            res[i][j] = ddMat1[i][j] - ddMat2[i][j];
-//            res[i][j] = abs(ddMat1[i][j] - ddMat2[i][j]);
-//            if(res[i][j] < 0) res[i][j] = -res[i][j];
-//        }
-//    }
-//    return res;
-//}
-*/
-
-/*
  * EN:
  *  checks if vec contains point p
  * RU:
@@ -325,7 +81,7 @@ const ProfileResult ImageProcessor::buildProfile001(const ProfileParameters &par
         int xCoord = static_cast<int>(std::round(x));
         int yCoord = static_cast<int>(std::round(y));
 
-        if (xCoord < 0 || xCoord >= ddImMat.size() || yCoord < 0 || yCoord >= ddImMat[0].size()) {
+        if (xCoord < 0 || xCoord >= (int)ddImMat.size() || yCoord < 0 || yCoord >= (int)ddImMat[0].size()) {
            result.points.push_back(QPointF(static_cast<double>(step), 0.0));
         } else {
            double yProf = ddImMat.at(xCoord).at(yCoord);
@@ -372,7 +128,7 @@ const ProfileResult ImageProcessor::buildProfile002(const ProfileParameters &par
     int kernelSize = 2 * convRad + 1;
     Matrix2D<double> convCore = getLapl(kernelSize, kernelSize, params.sigma);
 
-    if (convCore.size() != kernelSize || convCore[0].size() != kernelSize) {
+    if ((int)convCore.size() != kernelSize || (int)convCore[0].size() != kernelSize) {
 //        qDebug() << "Error: Convolution core has wrong size!" << convCore.size() << convCore[0].size();
         return result;
     }
@@ -529,132 +285,6 @@ const QVector<QPointF> ImageProcessor::cutProfile(const QVector<QPointF> &profil
 
 /*
  * EN:
- *
- * RU:
- *
- */
-const std::pair<int,int> ImageProcessor::findProfileBounds(const QVector<QPointF> profile, int step)
-{
-    if (profile.size() < 3) {
-            return {0, profile.size() - 1};
-    }
-
-    int center = profile.size() / 2;
-    int leftBound = center, rightBound = center;
-    bool leftIncr = true, rightIncr = true, decrLeft = (profile[leftBound-1].y() < profile[leftBound].y());
-    while(leftIncr || rightIncr){
-        if(leftBound <= 0 || rightBound >= profile.size()-1) break;
-        if(decrLeft){
-            if(profile[leftBound-1].y() < profile[leftBound].y() && leftIncr){
-                leftBound--;
-            }
-            else if(leftIncr){
-                if(leftBound < step) leftBound = 0;
-                else leftBound -= step;
-                leftIncr = false;
-            }
-            if(profile[rightBound+1].y() > profile[rightBound].y() && rightIncr){
-                rightBound++;
-            }
-            else if(rightIncr){
-                if(rightBound > profile.size() - step - 1) rightBound = profile.size() - 1;
-                else rightBound += step;
-                rightIncr = false;
-            }
-        }
-        else{
-            if(profile[leftBound-1].y() > profile[leftBound].y() && leftIncr){
-                leftBound--;
-            }
-            else if(leftIncr){
-                if(leftBound < step) leftBound = 0;
-                else leftBound -= step;
-                leftIncr = false;
-            }
-        }
-        if(profile[rightBound+1].y() < profile[rightBound].y() && rightIncr){
-            rightBound++;
-        }
-        else if(rightIncr){
-            if(rightBound > profile.size() - step - 1) rightBound = profile.size() - 1;
-            else rightBound += step;
-            rightIncr = false;
-        }
-    }
-    return {leftBound, rightBound};
-}
-
-/*
- * EN:
- *
- * RU:
- *
- */
-std::pair<int,int> ImageProcessor::alignProfiles(QVector<QPointF> &profileForReference, QVector<QPointF> &profileToAlign, int left, int right, int searchRange)
-{
-    if(profileForReference.empty() || profileToAlign.empty()) return {-1,-1};
-
-    std::pair<int,int> optimalShift = {0,0};
-
-    double minResidual = std::numeric_limits<double>::max();
-
-    double median1 = 0.0;
-    double dispersion1 = 0.0;
-
-    for(int i = 0; i < profileForReference.size(); i++){
-        median1 += profileForReference[i].y();
-    }
-    median1 /= profileForReference.size();
-
-    for(int i = 0; i < profileForReference.size(); i++){
-        dispersion1 += (profileForReference[i].y()-median1)*(profileForReference[i].y()-median1);
-    }
-    dispersion1 = sqrt(dispersion1)/profileForReference.size();
-
-    for(int i = 0; i < profileForReference.size(); i++){
-        profileForReference[i].setY((profileForReference[i].y()-median1)/dispersion1);
-    }
-    int leftEdge = left - searchRange;
-    leftEdge = leftEdge < 0 ? 0 : leftEdge;
-
-    int rightEdge = right + searchRange;
-    rightEdge = rightEdge >= profileToAlign.size() ? profileToAlign.size() - 1 : rightEdge;
-
-    for(int leftIncr = leftEdge; leftIncr <= left; leftIncr++){
-        for(int rightIncr = rightEdge; rightIncr >= right; rightIncr--){
-
-            QVector<QPointF> shiftedProfile = cutProfile(profileToAlign, leftIncr, rightIncr);
-            shiftedProfile = reInterpolateProfile(shiftedProfile, profileForReference.size());
-
-            double median2 = 0.0;
-            double dispersion2 = 0.0;
-
-            for(int i = 0; i < profileToAlign.size(); i++){
-                median2 += profileToAlign[i].y();
-            }
-            median2 /= profileToAlign.size();
-
-            for(int i = 0; i < profileToAlign.size(); i++){
-                dispersion2 += (profileToAlign[i].y()-median2)*(profileToAlign[i].y()-median2);
-            }
-            dispersion2 = sqrt(dispersion2)/profileToAlign.size();
-
-            for(int i = 0; i < profileToAlign.size(); i++){
-                profileToAlign[i].setY((profileToAlign[i].y()-median2)/dispersion2);
-            }
-
-            double tmp = calculateResidualOfProfiles(profileForReference,shiftedProfile);
-            if(tmp < minResidual) {
-                optimalShift = {leftIncr,rightIncr};
-                minResidual = tmp;
-            }
-        }
-    }
-    return optimalShift;
-}
-
-/*
- * EN:
  *  returns the sum of the square differences of profile1 and profile2 points.y values
  * RU:
  *  vozvrashchaet summu kvadratov raznostey znacheniy y profile1 i profile2
@@ -669,9 +299,11 @@ double ImageProcessor::differenceOfTwoProfiles(const QVector<QPointF> &profile1,
     return res;
 }
 
+
 /*
  * EN:
- *  reinterpolates profile to the new length 
+ *  reinterpolates profile from left bound to right bound
+ *  to the new length
  *  using linear interpolation
  * RU:
  *  pereinterpolirayet profil' do novoy dliny
@@ -679,45 +311,62 @@ double ImageProcessor::differenceOfTwoProfiles(const QVector<QPointF> &profile1,
  */
 const QVector<QPointF> ImageProcessor::reInterpolateProfile(const QVector<QPointF> &profile, int newLen)
 {
+    return reInterpolateProfile(profile, 0.0, profile.size() - 1, newLen);
+};
+
+/*
+ * EN:
+ *  reinterpolates profile from left bound to right bound
+ *  to the new length
+ *  using linear interpolation
+ * RU:
+ *  pereinterpolirayet profil' nachinaya s levoi granitsy do pravoi do novoy dliny
+ *  ispol'zuya lineynuyu interpolyatsiyu
+ */
+const QVector<QPointF> ImageProcessor::reInterpolateProfile(const QVector<QPointF> &profile, double leftBound, double rightBound, int newLen)
+{
     QVector<QPointF> newProfile;
 
-    newProfile.clear();
-    newProfile.reserve(newLen);
-
     if (profile.size() < 2 || newLen <= 0) {
+        qDebug() << "Error: Invalid input in reInterpolateProfile";
         return profile;
     }
 
-    double xL1 = profile.front().x();
-    double xR1 = profile.back().x();
+    leftBound = std::max(leftBound, 0.0);
+    rightBound = std::min(rightBound, static_cast<double>(profile.size() - 1));
+
+    if (leftBound >= rightBound) {
+        qDebug() << "Error: Invalid bounds in reInterpolateProfile";
+        return profile;
+    }
 
     newProfile.reserve(newLen);
 
-    double dxNew = (xR1 - xL1) / (newLen - 1);
+    double step = (rightBound - leftBound) / (newLen - 1);
 
     for (int i = 0; i < newLen; i++) {
-        double x = xL1 + i * dxNew;
+        double currentPos = leftBound + i * step;
 
-        int segmentIndex = 0;
-        while (segmentIndex < profile.size() - 1 && profile[segmentIndex + 1].x() < x) {
-            segmentIndex++;
-        }
+        int idx1 = static_cast<int>(std::floor(currentPos));
+        int idx2 = static_cast<int>(std::ceil(currentPos));
 
-        if (segmentIndex >= profile.size() - 1) {
-            newProfile.append(QPointF(profile.size()-1,profile.last().y()));
+        if (idx1 < 0) idx1 = 0;
+        if (idx2 >= profile.size()) idx2 = profile.size() - 1;
+        if (idx1 == idx2) {
+            newProfile.append(QPointF(i, profile[idx1].y()));
             continue;
         }
 
-        const QPointF& p1 = profile.at(segmentIndex);
-        const QPointF& p2 = profile.at(segmentIndex + 1);
+        const QPointF& p1 = profile[idx1];
+        const QPointF& p2 = profile[idx2];
 
-        if (p2.x() == p1.x()) {
-            newProfile.append(QPointF(i, p1.y()));
-        } else {
-            double y = p1.y() + (x - p1.x()) * (p2.y() - p1.y()) / (p2.x() - p1.x());
-            newProfile.append(QPointF(i, y));
-        }
+        double t = (currentPos - idx1) / (idx2 - idx1);
+
+        double y = p1.y() * (1.0 - t) + p2.y() * t;
+
+        newProfile.append(QPointF(static_cast<double>(i), y));
     }
+
     return newProfile;
 }
 
@@ -950,44 +599,56 @@ const QImage ImageProcessor::convImage(const QImage &image, const Matrix2D<doubl
  */
 const Matrix2D<double> ImageProcessor::convMat(const Matrix2D<double> &ddImageMat, const Matrix2D<double> &ddConvCore)
 {
-    int rows = ddImageMat.size(), cols = ddImageMat[0].size();
-    int iRad = ddConvCore.size();
-    Matrix2D<double> ddResMat(rows, std::vector<double>(cols));
-    double matSum = 0., convSum = 0.;
-    for(int ii = 0; ii < iRad; ii++) {
-        for(int jj = 0; jj < iRad; jj++) {
-            convSum += ddConvCore[ii][jj];
+    int rows = ddImageMat.size();
+    int cols = ddImageMat[0].size();
+    int kernelSize = ddConvCore.size();
+    int kernelRadius = kernelSize / 2;
+
+    Matrix2D<double> ddResMat(rows, std::vector<double>(cols, 0.0));
+
+    double kernelSum = 0.0;
+    for(int i = 0; i < kernelSize; i++) {
+        for(int j = 0; j < kernelSize; j++) {
+            kernelSum += ddConvCore[i][j];
         }
     }
-   if (convSum <= 0.) convSum = 1.0;
+    if (kernelSum <= 0) kernelSum = 1.0;
 
-    for(int i = 0; i < rows; i++)
-    {
-        for(int j = 0; j < cols; j++)
-        {
-            matSum = 0.;
-            for(int ii = 0; ii < iRad; ii++)
-            {
-                int it = abs(i - iRad/2 + ii);
-                if( it >= rows)
-                {
-                    it = 2*(rows - 1) - it;
-                }
-                for(int jj = 0; jj < iRad; jj++)
-                {
-                    int jt = abs(j - iRad/2 + jj);
+    std::vector<int> xIndices(rows + 2*kernelRadius);
+    std::vector<int> yIndices(cols + 2*kernelRadius);
 
-                    if( jt >= cols)
-                    {
-                        jt = 2*(cols - 1) - jt;
-                    }
-                    matSum += ddImageMat[it][jt] * ddConvCore[ii][jj];
+    for(int i = -kernelRadius; i < rows + kernelRadius; i++) {
+        int idx = i;
+        if(i < 0) idx = -i;
+        else if(i >= rows) idx = 2*(rows - 1) - i;
+        xIndices[i + kernelRadius] = idx;
+    }
+
+    for(int j = -kernelRadius; j < cols + kernelRadius; j++) {
+        int idx = j;
+        if(j < 0) idx = -j;
+        else if(j >= cols) idx = 2*(cols - 1) - j;
+        yIndices[j + kernelRadius] = idx;
+    }
+
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            double matSum = 0.0;
+
+            for(int ki = 0; ki < kernelSize; ki++) {
+                int imgX = xIndices[i - kernelRadius + ki + kernelRadius];
+
+                for(int kj = 0; kj < kernelSize; kj++) {
+                    int imgY = yIndices[j - kernelRadius + kj + kernelRadius];
+
+                    matSum += ddImageMat[imgX][imgY] * ddConvCore[ki][kj];
                 }
             }
-            matSum /= convSum;
-            ddResMat[i][j] = matSum;
+
+            ddResMat[i][j] = matSum / kernelSum;
         }
     }
+
     return ddResMat;
 }
 
@@ -999,7 +660,7 @@ const Matrix2D<double> ImageProcessor::convMat(const Matrix2D<double> &ddImageMa
  */
 const Matrix2D<double> ImageProcessor::getGauss(int iXsize, int iYsize, double dSigma)
 {
-    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize));
+    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize, 0.0));
     int xCenter = iXsize / 2; int yCenter = iYsize / 2;
     double sum = 0.;
     for (int i = 0; i < iXsize; i++)
@@ -1009,7 +670,7 @@ const Matrix2D<double> ImageProcessor::getGauss(int iXsize, int iYsize, double d
             int dx = abs(xCenter - i);
             int dy = abs(yCenter - j);
             double Rad = sqrt(dx * dx + dy * dy);
-            ddRes[i][j] = 1.0 / (dSigma * sqrt(2.0 * pi)) * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
+            ddRes[i][j] = 1.0 / (dSigma * dSigma * 2.0 * pi) * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
             sum += ddRes[i][j];
         }
     }
@@ -1020,6 +681,7 @@ const Matrix2D<double> ImageProcessor::getGauss(int iXsize, int iYsize, double d
             ddRes[i][j] /= sum;
         }
     }
+    qDebug() << "gauss kernel sum = " << sum << "\n";
     return ddRes;
 }
 
@@ -1033,17 +695,17 @@ const Matrix2D<double> ImageProcessor::getGauss(int iXsize, int iYsize, double d
  */
 const Matrix2D<double> ImageProcessor::getXGradCore(int iXsize, int iYsize, double dSigma)
 {
-    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize));
+    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize, 0.0));
     int xCenter = iXsize / 2; int yCenter = iYsize / 2;
     double sum = 0.0;
     for (int i = 0; i < iXsize; i++)
     {
         for (int j = 0; j < iYsize; j++)
         {
-            int dx = (xCenter - i);
-            int dy = (yCenter - j);
+            int dx = (i - xCenter);
+            int dy = (j - yCenter);
             double Rad = sqrt(dx * dx + dy * dy);
-            ddRes[i][j] = dx / (dSigma * sqrt(2.0 * pi)) * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
+            ddRes[i][j] = dx / dSigma / dSigma * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
             sum += ddRes[i][j];
         }
     }
@@ -1051,9 +713,10 @@ const Matrix2D<double> ImageProcessor::getXGradCore(int iXsize, int iYsize, doub
     {
         for (int j = 0; j < iYsize; j++)
         {
-            ddRes[i][j] /= sum;
+//            ddRes[i][j] /= sum;
         }
     }
+    qDebug() << "x grad kernel sum = " << sum << "\n";
     return ddRes;
 }
 
@@ -1067,17 +730,17 @@ const Matrix2D<double> ImageProcessor::getXGradCore(int iXsize, int iYsize, doub
  */
 const Matrix2D<double> ImageProcessor::getYGradCore(int iXsize, int iYsize, double dSigma)
 {
-    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize));
+    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize, 0.0));
     int xCenter = iXsize / 2; int yCenter = iYsize / 2;
     double sum = 0.0;
     for (int i = 0; i < iXsize; i++)
     {
         for (int j = 0; j < iYsize; j++)
         {
-            int dx = (xCenter - i);
-            int dy = (yCenter - j);
+            int dx = (i - xCenter);
+            int dy = (j - yCenter);
             double Rad = sqrt(dx * dx + dy * dy);
-            ddRes[i][j] = dy / (dSigma * sqrt(2.0 * pi)) * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
+            ddRes[i][j] = dy / dSigma / dSigma * exp((-1.0 / 2.0) * (Rad * Rad) / (dSigma * dSigma));
             sum += ddRes[i][j];
         }
     }
@@ -1085,9 +748,10 @@ const Matrix2D<double> ImageProcessor::getYGradCore(int iXsize, int iYsize, doub
     {
         for (int j = 0; j < iYsize; j++)
         {
-            ddRes[i][j] /= sum;
+//            ddRes[i][j] /= sum;
         }
     }
+    qDebug() << "y grad kernel sum = " << sum << "\n";
     return ddRes;
 }
 
@@ -1099,9 +763,10 @@ const Matrix2D<double> ImageProcessor::getYGradCore(int iXsize, int iYsize, doub
  */
 const Matrix2D<double> ImageProcessor::getLapl(int iXsize, int iYsize, double dSigma)
 {
-    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize));
+    Matrix2D<double> ddRes(iXsize, std::vector<double>(iYsize, 0.0));
     int xCenter = iXsize / 2; int yCenter = iYsize / 2;
     double sum = 0.0;
+//    double normCoef = 2. / sqrt(3. * dSigma) / sqrt(sqrt(pi));
     for (int i = 0; i < iXsize; i++)
     {
         for (int j = 0; j < iYsize; j++)
@@ -1109,7 +774,8 @@ const Matrix2D<double> ImageProcessor::getLapl(int iXsize, int iYsize, double dS
             int dx = abs(xCenter - i);
             int dy = abs(yCenter - j);
             double Rad = sqrt(dx * dx + dy * dy);
-            ddRes[i][j] = (Rad * Rad / dSigma / dSigma - 2.) * exp( -1. * Rad * Rad / 2 / dSigma / dSigma);
+//            ddRes[i][j] = normCoef * (1. - Rad * Rad / dSigma / dSigma) * exp( -1. * Rad * Rad / 2 / dSigma / dSigma);
+            ddRes[i][j] = (Rad * Rad / dSigma / dSigma - 2.0) * exp( -1. * Rad * Rad / 2 / dSigma / dSigma);
             sum += ddRes[i][j];
         }
     }
@@ -1117,9 +783,10 @@ const Matrix2D<double> ImageProcessor::getLapl(int iXsize, int iYsize, double dS
     {
         for (int j = 0; j < iYsize; j++)
         {
-            ddRes[i][j] /= sum;
+//            ddRes[i][j] /= sum;
         }
     }
+    qDebug() << "lapl kernel sum = " << sum << "\n";
     return ddRes;
 }
 
@@ -1325,13 +992,14 @@ const Matrix2D<double> ImageProcessor::findEdgesRB(const Matrix2D<double> &ddIma
  */
 const QImage ImageProcessor::gaussianEdgeDetection(const Matrix2D<double> &ddImageMat, double dSigma, int iRad, Matrix2D<int> &iiImageAttMat, Matrix2D<double> &ddMatForProfile)
 {
+    Q_UNUSED(ddMatForProfile);
     Matrix2D<double> mat1;
     Matrix2D<double> mat2;
 
-    mat2 = convMat(ddImageMat, getGauss(iRad, iRad, dSigma));
-    mat1 = convMat(ddImageMat, getGauss(iRad, iRad, dSigma*2.0));
+    mat1 = convMat(ddImageMat, getGauss(iRad, iRad, dSigma));
+    mat2 = convMat(ddImageMat, getGauss(iRad, iRad, dSigma*1.6));
     mat1 = elementWiseOperation(mat1, mat2, MatrixLambdas::Subtract<double>{});
-    ddMatForProfile = mat1;
+
     mat1 = findEdges(mat1, 3, iiImageAttMat);
     QImage image = toGrayImage(mat1);
     return image;
@@ -1435,4 +1103,311 @@ double ImageProcessor::calculateResidualOfProfiles(const QVector<QPointF> &profi
 
     return sqrt(sumSquared);
 
+}
+
+/*
+ * EN:
+ *
+ * RU:
+ *
+ */
+RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, RefinementParameters params)
+{
+    RefinementResult result;
+    /*
+     *   QPointF refinedPosition;    // Refined position / Utochnennaya poziciya
+     *   double FFF1_1;              // Shift value / Velichina sdviga
+     *   double FFF1_0;              // Scale value / Velichina masshtaba
+     *   double residual;            // Final residual / Finalnaya nevyazka
+     *   bool success;
+    */
+
+    // Initialize result with default values / Inicializaciya rezultata znacheniyami po-umolchaniyu
+    result.success = false;
+    result.FFF1_0 = 0.0;
+    result.FFF1_1 = 0.0;
+    result.residual = std::numeric_limits<double>::max();
+    result.refinedPosition = QPointF(n0, m0);
+
+    // Check if point is within image bounds / Proverka, nahoditsya li tochka v predelah izobrazheniya
+    if (n0 < 0 || n0 >= params.NX || m0 < 0 || m0 >= params.NY) {
+        qDebug() << "Error: Point out of bounds / Oshibka: Tochka vne granic";
+        return result;
+    }
+
+    QVector<double> prof1, prof2;
+    int n_sigma = params.n_sigma;           // Number of sigma steps / Kolichestvo shagov sigma
+    int n_myu = params.n_myu;                // Number of mu points / Kolichestvo tochek mu
+    int x0 = n0, y0 = m0;                    // Starting point / Nachalnaya tochka
+    double sigma_myu = min(params.sigma1, params.sigma2);  // Sigma for profile / Sigma dlya profilya
+    QVector<double> mu;
+
+    // Reserve memory for vectors / Rezerviruem pamyat dlya vektorov
+    mu.reserve(n_myu);
+    prof1.reserve(n_myu);
+    prof2.reserve(n_myu);
+
+    // Generate mu values / Generiruem znacheniya mu
+    for(int s = 0; s < n_myu; s++) {
+        double val = -n_sigma*sigma_myu + s*(2*n_sigma*sigma_myu)/n_myu;
+        mu.push_back(val);
+    }
+
+    // Build profiles along gradient direction / Stroim profili vdol napravleniya gradienta
+    for(int s = 0; s < n_myu; s++) {
+        double prof1Val = 0.0;
+        double prof2Val = 0.0;
+
+        for(int n = 0; n < params.NX; n++) {
+            for(int m = 0; m < params.NY; m++) {
+                // Calculate distance from point along gradient / Vychislyaem rasstoyanie ot tochki vdol gradienta
+                double dx = (x0 - n + mu[s]*params.ex);
+                double dy = (y0 - m + mu[s]*params.ey);
+                double rad = dx*dx + dy*dy;
+
+                // Laplacian of Gaussian kernel / Yadro Laplaciana Gaussa
+                double mult = (rad/params.sigma1/params.sigma1 - 2.0) * exp(-0.5*rad/params.sigma1/params.sigma1);
+
+                prof1Val += params.A[n][m] * mult;
+                prof2Val += params.B01[n][m] * mult;
+            }
+        }
+        prof1.push_back(prof1Val);
+        prof2.push_back(prof2Val);
+    }
+
+    QVector<double> y1, y2;  // Only need y values for profiles / Nuzhny tolko znacheniya y dlya profiley
+    for(int i = 0; i < n_myu; i++) {
+        y1.push_back(prof1[i]);
+        y2.push_back(prof2[i]);
+    }
+
+    // Find zero crossings / Nahodim perehody cherez nol
+    App_Stats y2_stats;
+    y2_stats.gather_stats(y2);
+    int nmumax = max(y2_stats.x_max, y2_stats.x_min);
+    int nmumin = min(y2_stats.x_max, y2_stats.x_min);
+    int N0 = n_myu;
+
+    // Add bounds checking for array access / Dobavlyaem proverku granic pri dostupe k massivu
+    int nL_Zero = N0/2, nR_Zero = N0/2;
+    for(int n = nmumin; n < nmumax && n < n_myu - 1; n++) {
+        if(prof1[n]*prof1[n+1] < 0) nL_Zero = n;
+        if(prof2[n]*prof2[n+1] < 0) nR_Zero = n;
+    }
+
+    int N_Zero = (nL_Zero + nR_Zero)/2;
+
+    // Find profile bounds by counting increases/decreases / Nahodim granicy profilya, schitaya uvelicheniya/umensheniya
+    // Using second profile (more blurred) for better stability / Ispolzuem vtoroy profil (bolee razmytyy) dlya luchshey stabilnosti
+    int decrCounter = 0, incrCounter = 0;
+    int XL1 = 0, XR1 = 0;
+
+    // Search right bound / Poisk pravoy granicy
+    for(int i = N_Zero + 1; i < n_myu - 1; i++) {
+        if(prof2[i] < prof2[i+1]) {
+            incrCounter++;
+            incrCounter = min(incrCounter, 5);  // Limit to 5 / Ogranichivaem do 5
+        }
+        if(prof2[i] > prof2[i+1]) {
+            decrCounter++;
+            decrCounter = min(decrCounter, 5);
+        }
+        if(decrCounter == 5 && incrCounter == 5) {
+            XR1 = min(i, n_myu - 35);
+            break;
+        }
+    }
+
+    // Add default value if loop didn't find bounds / Dobavlyaem znachenie po-umolchaniyu esli cikl ne nashel granicy
+    if (XR1 == 0) XR1 = min(N_Zero + 50, n_myu - 35);
+
+    // Search left bound / Poisk levoy granicy
+    incrCounter = 0; decrCounter = 0;
+    for(int i = N_Zero - 1; i > 1; i--) {
+        if(prof2[i] < prof2[i+1]) {
+            incrCounter++;
+            incrCounter = min(incrCounter, 5);
+        }
+        if(prof2[i] > prof2[i+1]) {
+            decrCounter++;
+            decrCounter = min(decrCounter, 5);
+        }
+        if(decrCounter == 5 && incrCounter == 5) {
+            XL1 = max(i, 20);
+            break;
+        }
+    }
+
+    // Add default value if loop didn't find bounds / Dobavlyaem znachenie po-umolchaniyu esli cikl ne nashel granicy
+    if (XL1 == 0) XL1 = max(N_Zero - 50, 20);
+
+    // Prepare first profile for interpolation / Podgotavlivaem pervyy profil dlya interpolyacii
+    QVector<QPointF> yP1;
+    yP1.reserve(XR1 - XL1);
+    for(int i = XL1; i < XR1; i++) {
+        yP1.push_back({ 1. * i, prof1[i]} );
+    }
+
+    int NN = params.NN;  // New profile length / Novaya dlina profilya
+
+    // Reinterpolate first profile / Pereinterpoliruem pervyy profil
+    QVector<QPointF> yyP1 = ImageProcessor::reInterpolateProfile(yP1, NN);
+    QVector<double> yy1;
+    yy1.reserve(NN);
+    for(int s1 = 0; s1 < NN; s1++) {
+        yy1.push_back(yyP1[s1].y());
+    }
+
+    // Search for optimal second profile bounds / Poisk optimalnyh granic vtorogo profilya
+    int otstup = params.otstup;  // Search range / Diapozon poiska
+    double minraz = std::numeric_limits<double>::max();
+    int best_XL2 = XL1, best_XR2 = XR1;
+
+    // Clear yP2 before each search / Ochishchaem yP2 pered kazhdym poiskom
+    for(int XL2 = XL1; XL2 > XL1 - otstup; XL2--) {
+        for(int XR2 = XR1; XR2 < XR1 + otstup; XR2++) {
+
+            // Skip invalid bounds / Propuskaem nevalidnye granicy
+            if(XL2 < 0 || XR2 >= n_myu || XL2 >= XR2) continue;
+
+            // Prepare second profile / Podgotavlivaem vtoroy profil
+            QVector<QPointF> yP2;
+            yP2.reserve(n_myu);
+            for(int i = 0; i < n_myu; i++) {
+                yP2.push_back({ 1. * i, prof2[i]} );
+            }
+
+            // Reinterpolate second profile with current bounds / Pereinterpoliruem vtoroy profil s tekushchimi granicami
+            QVector<QPointF> yyP2 = ImageProcessor::reInterpolateProfile(yP2, XL2, XR2, NN);
+            QVector<double> yy2;
+            yy2.reserve(NN);
+            for(int s1 = 0; s1 < NN; s1++) {
+                yy2.push_back(yyP2[s1].y());
+            }
+
+            // Normalize both profiles / Normalizuem oba profilya
+            double m1 = 0.0, m2 = 0.0, D1 = 0.0, D2 = 0.0;
+            for(int i = 0; i < NN; i++) {
+                m1 += yy1[i];
+                m2 += yy2[i];
+            }
+            m1 /= NN + 1;
+            m2 /= NN + 1;
+
+            for(int i = 0; i < NN; i++) {
+                D1 += (yy1[i] - m1) * (yy1[i] - m1);
+                D2 += (yy2[i] - m2) * (yy2[i] - m2);
+            }
+            D1 = sqrt(D1 / (NN + 1));
+            D2 = sqrt(D2 / (NN + 1));
+
+            // Avoid division by zero / Izbegaem deleniya na nol
+            if (D1 < 1e-10) D1 = 1.0;
+            if (D2 < 1e-10) D2 = 1.0;
+
+            QVector<double> yyn1, yyn2;
+            yyn1.reserve(NN);
+            yyn2.reserve(NN);
+            for(int s1 = 0; s1 < NN; s1++) {
+                yyn1.push_back((yy1[s1] - m1) / D1);
+                yyn2.push_back((yy2[s1] - m2) / D2);
+            }
+
+            // Calculate residual (sum of squared differences) / Vychislyaem nevyazku (summu kvadratov raznostey)
+            double MINRAZ = 0.0;
+            for(int i = 0; i < NN; i++) {
+                MINRAZ += (yyn1[i] - yyn2[i]) * (yyn1[i] - yyn2[i]);
+            }
+
+            // Keep best bounds / Sohranyaem luchshie granicy
+            if(minraz > MINRAZ) {
+                minraz = MINRAZ;
+                best_XL2 = XL2;
+                best_XR2 = XR2;
+            }
+        }
+    }
+
+    // Final processing with optimal bounds / Finalnaya obrabotka s optimalnymi granicami
+    QVector<QPointF> yP2_final;
+    yP2_final.reserve(n_myu);
+    for(int i = 0; i < n_myu; i++) {
+        yP2_final.push_back({ 1. * i, prof2[i]} );
+    }
+
+    QVector<QPointF> yyP2_final = ImageProcessor::reInterpolateProfile(yP2_final, best_XL2, best_XR2, NN);
+    QVector<double> yy2_final;
+    yy2_final.reserve(NN);
+    for(int s1 = 0; s1 < NN; s1++) {
+        yy2_final.push_back(yyP2_final[s1].y());
+    }
+
+    // Final normalization / Finalnaya normalizaciya
+    double m1_f = 0.0, m2_f = 0.0, D1_f = 0.0, D2_f = 0.0;
+    for(int i = 0; i < NN; i++) {
+        m1_f += yy1[i];
+        m2_f += yy2_final[i];
+    }
+    m1_f /= NN + 1;
+    m2_f /= NN + 1;
+
+    for(int i = 0; i < NN; i++) {
+        D1_f += (yy1[i] - m1_f) * (yy1[i] - m1_f);
+        D2_f += (yy2_final[i] - m2_f) * (yy2_final[i] - m2_f);
+    }
+    D1_f = sqrt(D1_f / (NN + 1));
+    D2_f = sqrt(D2_f / (NN + 1));
+
+    // Avoid division by zero in normalization / Izbegaem deleniya na nol pri normalizacii
+    if (D1_f < 1e-10) D1_f = 1.0;
+    if (D2_f < 1e-10) D2_f = 1.0;
+
+    QVector<double> yyn1_final, yyn2_final;
+    yyn1_final.reserve(NN);
+    yyn2_final.reserve(NN);
+    for(int s1 = 0; s1 < NN; s1++) {
+        yyn1_final.push_back((yy1[s1] - m1_f) / D1_f);
+        yyn2_final.push_back((yy2_final[s1] - m2_f) / D2_f);
+    }
+
+    // Calculate final residual / Vychislyaem finalnuyu nevyazku
+    double MINRAZ_final = 0.0;
+    for(int i = 0; i < NN; i++) {
+        MINRAZ_final += (yyn1_final[i] - yyn2_final[i]) * (yyn1_final[i] - yyn2_final[i]);
+    }
+
+    // Calculate shift coefficients / Vychislyaem koefficienty sdviga
+    double xa = XL1, xb = XR1;
+    double ya = 1. * best_XL2 - XL1;
+    double yb = 1. * best_XR2 - XR1;
+
+    // Avoid division by zero / Izbegaem deleniya na nol
+    if (abs(yb - ya) < 1e-10) {
+        qDebug() << "Error: Division by zero in shift calculation / Oshibka: Delenie na nol pri vychislenii sdviga";
+        return result;
+    }
+
+    // Find intersection point / Nahodim tochku peresecheniya
+    double x00 = (xa*yb - xb*ya) / (yb - ya);
+
+    // Convert to mu space / Preobrazuem v prostranstvo mu
+    double mu00 = -n_sigma*sigma_myu + x00*(2.*n_sigma*sigma_myu)/n_myu;
+
+    // Final shift and scale coefficients / Finalnye koefficienty sdviga i masshtaba
+    double FFF1_1 = mu00;  // Shift coefficient / Koefficient sdviga
+    double FFF1_0 = (yb - ya) / (xb - xa);  // Scale coefficient / Koefficient masshtaba
+
+    // Calculate new refined position / Vychislyaem novuyu utochnennuyu poziciyu
+    double n_new = n0 + params.ex * FFF1_1;
+    double m_new = m0 + params.ey * FFF1_1;
+
+    // Fill result structure / Zapolnyaem strukturu rezultata
+    result.FFF1_0 = FFF1_0;
+    result.FFF1_1 = FFF1_1;
+    result.refinedPosition = QPointF(n_new, m_new);
+    result.residual = MINRAZ_final;
+    result.success = true;
+
+    return result;
 }

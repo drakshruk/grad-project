@@ -186,7 +186,6 @@ void ImageShowcaseWidget::mousePressEvent(QMouseEvent* event)
 
         if (imagePos.x() >= 0 && imagePos.y() >= 0) {
             emit imageClicked(imagePos);
-            emit imageClicked(imagePos.x(), imagePos.y());
         }
     }
 

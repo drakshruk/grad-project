@@ -50,7 +50,7 @@ public slots:
 
     void on_actionsave_file_triggered();
 
-    void mousePressEvent(QMouseEvent *e);
+    void on_showcaseWidget_clicked(const QPoint& imagePosition);
 
     void catch_ImageCalculator(const QImage& image1, const QImage& image2, QString operation, bool newWindow, bool floatResult);
 
@@ -71,6 +71,9 @@ public slots:
     void on_actionimage_calculator_triggered();
 
     void on_actionsharpen_triggered();
+
+private slots:
+    void on_actiontest_002_triggered();
 
 private:
     Ui::MainWindow  *ui;

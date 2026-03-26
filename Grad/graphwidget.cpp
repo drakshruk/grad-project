@@ -33,42 +33,52 @@ void GraphWidget::plotGraph(QVector<double> x, QVector<double> y)
     ui->widget->yAxis->setRange(minY,maxY);
     ui->widget->replot();
 }
-
 void GraphWidget::plotTwoGraphs(QVector<double> x1, QVector<double> y1, QVector<double> x2, QVector<double> y2)
 {
-    ui->widget->addGraph();
+    ui->widget->clearGraphs();
+
     ui->widget->addGraph();
     ui->widget->graph(0)->setData(x1, y1);
-    ui->widget->graph(1)->setData(x2, y2);
-    ui->widget->xAxis->setLabel("x");
-    ui->widget->yAxis->setLabel("y");
-    ui->widget->xAxis->setRange(x1[0],x1.back());
-    double minY = y1[0];
-    double minX = x1[0];
-    for(int i = 0; i < y1.size(); i++)
-    {
-        if(minY > y1[i]) minY = y1[i];
-        if(minX > x1[i]) minX = x1[i];
+    ui->widget->graph(0)->setPen(QPen(Qt::blue, 2)); // Синий цвет, толщина 2
+    ui->widget->graph(0)->setName("Profile 1"); // Легенда
 
+    ui->widget->addGraph();
+    ui->widget->graph(1)->setData(x2, y2);
+    ui->widget->graph(1)->setPen(QPen(Qt::red, 2)); // Красный цвет, толщина 2
+    ui->widget->graph(1)->setName("Profile 2"); // Легенда
+
+    // Настройка осей
+    ui->widget->xAxis->setLabel("Position");
+    ui->widget->yAxis->setLabel("Intensity");
+
+    if (x1.isEmpty() || y1.isEmpty() || x2.isEmpty() || y2.isEmpty()) {
+        qDebug() << "Error: Empty data vectors";
+        return;
     }
-    for(int i = 0; i < y2.size(); i++)
-    {
-        if(minY > y2[i]) minY = y2[i];
-        if(minX > x2[i]) minX = x2[i];
-    }
-    double maxY = y1[0];
-    double maxX = x1[0];
-    for(int i = 0; i < y1.size(); i++)
-    {
-        if(maxY < y1[i]) maxY = y1[i];
-        if(maxX < x1[i]) maxX = x1[i];
-    }
-    for(int i = 0; i < y2.size(); i++)
-    {
-        if(maxY < y2[i]) maxY = y2[i];
-        if(maxX < x2[i]) maxX = x2[i];
-    }
-    ui->widget->yAxis->setRange(minY,maxY);
-    ui->widget->xAxis->setRange(minX,maxX);
+
+    double minX = std::min(*std::min_element(x1.begin(), x1.end()),
+                          *std::min_element(x2.begin(), x2.end()));
+    double maxX = std::max(*std::max_element(x1.begin(), x1.end()),
+                          *std::max_element(x2.begin(), x2.end()));
+
+    double minY = std::min(*std::min_element(y1.begin(), y1.end()),
+                          *std::min_element(y2.begin(), y2.end()));
+    double maxY = std::max(*std::max_element(y1.begin(), y1.end()),
+                          *std::max_element(y2.begin(), y2.end()));
+
+    double xRange = maxX - minX;
+    double yRange = maxY - minY;
+
+    ui->widget->xAxis->setRange(minX - 0.05 * xRange, maxX + 0.05 * xRange);
+    ui->widget->yAxis->setRange(minY - 0.05 * yRange, maxY + 0.05 * yRange);
+
+    ui->widget->legend->setVisible(true);
+
     ui->widget->replot();
+
+//    qDebug() << "Plotted two graphs:";
+//    qDebug() << "Graph 1 - Points:" << x1.size() << "X range: [" << *std::min_element(x1.begin(), x1.end())
+//             << "," << *std::max_element(x1.begin(), x1.end()) << "]";
+//    qDebug() << "Graph 2 - Points:" << x2.size() << "X range: [" << *std::min_element(x2.begin(), x2.end())
+//             << "," << *std::max_element(x2.begin(), x2.end()) << "]";
 }

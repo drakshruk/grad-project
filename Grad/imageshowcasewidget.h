@@ -36,7 +36,6 @@ public:
 
 signals:
     void imageClicked(const QPoint& imagePosition);
-    void imageClicked(int imageX, int imageY);
     void widgetClicked(const QPoint& widgetPosition);
     void imageChanged();
 
