@@ -6,20 +6,20 @@
 QString ImageCalculator::operationToString(ImageOperation op)
 {
     switch (op) {
-        case ImageOperation::Add: return "Add";
-        case ImageOperation::Subtract: return "Subtract";
-        case ImageOperation::Multiply: return "Multiply";
-        case ImageOperation::Divide: return "Divide";
-        case ImageOperation::AND: return "AND";
-        case ImageOperation::OR: return "OR";
-        case ImageOperation::XOR: return "XOR";
-        case ImageOperation::Min: return "Min";
-        case ImageOperation::Max: return "Max";
-        case ImageOperation::Average: return "Average";
-        case ImageOperation::Difference: return "Difference";
-        case ImageOperation::Copy: return "Copy";
-        case ImageOperation::TransparentZero: return "Transparent-zero";
-        default: return "Add";
+    case ImageOperation::Add: return "Add";
+    case ImageOperation::Subtract: return "Subtract";
+    case ImageOperation::Multiply: return "Multiply";
+    case ImageOperation::Divide: return "Divide";
+    case ImageOperation::AND: return "AND";
+    case ImageOperation::OR: return "OR";
+    case ImageOperation::XOR: return "XOR";
+    case ImageOperation::Min: return "Min";
+    case ImageOperation::Max: return "Max";
+    case ImageOperation::Average: return "Average";
+    case ImageOperation::Difference: return "Difference";
+    case ImageOperation::Copy: return "Copy";
+    case ImageOperation::TransparentZero: return "Transparent-zero";
+    default: return "Add";
     }
 }
 

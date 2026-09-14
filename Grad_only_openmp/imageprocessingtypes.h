@@ -260,6 +260,14 @@ struct RefinementParameters {
     // Image data / Dannye izobrazheniya
     Matrix2D<double> A;        // First blurred image / Pervoe razmytoe izobrazhenie
     Matrix2D<double> B01;       // Second blurred image / Vtoroe razmytoe izobrazhenie
+
+
+
+    // НОВЫЕ ПОЛЯ: предварительно отфильтрованные LoG изображения
+    Matrix2D<double> A_log;       // LoG(A) — вычисляется ОДИН раз в test_001
+    Matrix2D<double> B01_log;     // LoG(B01)
+
+
     double ex = 0.0, ey = 0.0;  // Gradient direction components / Komponenty napravleniya gradienta
     int NX = 0, NY = 0;          // Image dimensions / Razmery izobrazheniya
 

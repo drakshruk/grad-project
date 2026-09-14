@@ -285,7 +285,17 @@ namespace ImageProcessor {
      * @param params Refinement parameters
      * @return RefinementResult with refined position and statistics
      */
-    RefinementResult refineSinglePoint(int n0, int m0, const RefinementParameters& params);
+    RefinementResult refineSinglePoint001(int n0, int m0, const RefinementParameters& params);
+    RefinementResult refineSinglePoint002(int n0, int m0, const RefinementParameters& params);
+
+
+
+    // Вычисление остатка между двумя профилями (для градиентного спуска)
+    double computeResidual(const QVector<double>& yy1,
+                                           const QVector<QPointF>& yP2_full,
+                                           int XL2, int XR2, int NN);
+
+    double interpolateBilinear(const Matrix2D<double>& img, double x, double y);
 
     // ============================================================================
     // Element-wise Operations / Poelementnye operacii
@@ -406,16 +416,8 @@ namespace ImageProcessor {
      */
     bool saveStatisticsToFile(const ImageStatistics& stats, const QString& filename);
 
-    /**
-     * EN: Exports histogram data to CSV format
-     * RU: Eksportiruyet dannyye gistogrammy v format CSV
-     * @param stats Statistics containing histogram / Statistika, soderzhashchaya gistogrammu
-     * @param filename Output file path / Put' k vykhodnomu faylu
-     * @return true if successful, false otherwise
-     */
-    bool exportHistogramToCSV(const ImageStatistics& stats, const QString& filename);
-
-}; // namespace ImageProcessor
+}
+// namespace ImageProcessor
 
 // ============================================================================
 // ImageData Class - Data container for image and associated matrices

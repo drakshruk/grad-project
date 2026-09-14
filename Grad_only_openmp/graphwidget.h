@@ -1,4 +1,3 @@
-// graphwidget.h
 #ifndef GRAPHWIDGET_H
 #define GRAPHWIDGET_H
 
@@ -37,6 +36,13 @@ public:
                        const QVector<double>& x2, const QVector<double>& y2);
 
     /**
+     * EN: Plots multiple graphs on the same axes for comparison
+     * RU: Otobrazhayet neskol'ko grafikof na odnikh osyakh dlya sravneniya
+     */
+    void plotMultipleProfiles(const QVector<QVector<QPointF>>& profiles,
+                              const QVector<QString>& labels);
+
+    /**
      * EN: Clears all graphs from the plot
      * RU: Ochishchayet vse grafiki s polya
      */
@@ -59,6 +65,20 @@ public:
      * RU: Vklyuchayet/otklyuchayet legendu
      */
     void setLegendVisible(bool visible);
+
+    /**
+     * EN: Plots multiple profiles with zero crossings marked
+     * RU: Otobrazhayet neskol'ko profiliey s otmechennymi perekhodami cherez nol'
+     */
+    void plotMultipleProfilesWithZeroCrossings(const QVector<QVector<QPointF>>& profiles,
+                                               const QVector<QString>& labels,
+                                               const QVector<QVector<double>>& zeroCrossings);
+
+    /**
+     * EN: Gets pointer to QCustomPlot widget for advanced operations
+     * RU: Vozvrashchaet ukazatel' na vidzhet QCustomPlot dlya rasshirennykh operatsiy
+     */
+    QCustomPlot* getPlot();
 
 private:
     /**

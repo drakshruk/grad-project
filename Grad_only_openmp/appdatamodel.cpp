@@ -157,9 +157,6 @@ void AppDataModel::setSigma(double newSigma)
     // First clamp to reasonable range / Snachala ogranichivayem v razumnykh predelakh
     newSigma = std::max(0.1, std::min(50.0, newSigma));
 
-    // Then validate against image size / Zatem proveryayem otnositel'no razmera izobrazheniya
-    newSigma = validateSigma(newSigma);
-
     if (std::abs(m_sigma - newSigma) < 1e-6) {
         return;
     }
@@ -341,21 +338,4 @@ void AppDataModel::resetToOriginal()
     }
 
     setCurrentImage(m_originalImage);
-}
-
-double AppDataModel::maxAllowedSigma() const
-{
-    int minDimension = std::min(m_currentImage.width(), m_currentImage.height());
-    return static_cast<double>(minDimension) / 8.0;
-}
-
-double AppDataModel::validateSigma(double sigma) const
-{
-    double maxSigma = maxAllowedSigma();
-    if (sigma > maxSigma && maxSigma > 0) {
-        qDebug() << "Warning: Sigma" << sigma << "exceeds max allowed" << maxSigma
-                 << ". Clamping to" << maxSigma;
-        return maxSigma;
-    }
-    return sigma;
 }

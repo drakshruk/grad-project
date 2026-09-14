@@ -3,6 +3,7 @@
 
 QPoint mPos;
 QVector<QPoint> selectedEdge;
+QVector<QPoint> trueEdge;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -10,114 +11,47 @@ MainWindow::MainWindow(QWidget *parent) :
     m_dataModel(new AppDataModel(this))
 {
     ui->setupUi(this);
+
+    // Initialize widgets
     imCalculator = new ImageCalculator();
     imageWidget = new ImageShowcaseWidget();
+    profileImageWidget = new ImageShowcaseWidget();
+    getDataDialog = new Dialog();
+    GrWid = new GraphWidget();
 
-    connect(m_dataModel, &AppDataModel::currentImageChanged, this, &MainWindow::on_imageUpdated);
-    connect(imCalculator,&ImageCalculator::throw_imageCalculator , this, &MainWindow::catch_ImageCalculator);
-    connect(imageWidget, &ImageShowcaseWidget::imageClicked, this, &MainWindow::on_showcaseWidget_clicked);
+    // Set up connections
+    connect(m_dataModel, &AppDataModel::currentImageChanged,
+            this, &MainWindow::on_imageUpdated);
+    connect(imCalculator, &ImageCalculator::throw_imageCalculator,
+            this, &MainWindow::catch_ImageCalculator);
+    connect(imageWidget, &ImageShowcaseWidget::imageClicked,
+            this, &MainWindow::on_showcaseWidget_clicked);
 
+    // Initialize parameters
     m_dataModel->setBlueMax(255);
     m_dataModel->setRedMax(255);
     m_dataModel->setRadius(10);
     m_dataModel->setSigma(5);
 
-    getDataDialog = new Dialog();
-    this->setFixedSize(550,50);
-    GrWid = new GraphWidget();
+    // Set window properties
+    this->setFixedSize(550, 50);
+
+    // Update parameters from model
+    iRad = m_dataModel->radius();
+    dSigma = m_dataModel->sigma();
+    dRedMax = m_dataModel->redMax();
+    dBlueMax = m_dataModel->blueMax();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete profileImageWidget;
 }
 
-void MainWindow::on_actiongaussian_blur_triggered()
-{
-    this->getDataDialog->setWindowTitle("Write sigma coefficient value");
-    this->getDataDialog->setPlaceholderText("Sigma value");
-    if(getDataDialog->exec())
-    {
-        m_dataModel->setSigma(getDataDialog->value);
-        m_dataModel->setRadius(m_dataModel->sigma());
-        curImage = ImageProcessor::convImage(curImage, ImageProcessor::getGauss(m_dataModel->radius(),m_dataModel->radius(),m_dataModel->sigma()));
-
-        imageWidget->setImage(curImage);
-        imageWidget->show();
-        im1 = curImage;
-    }
-}
-
-void MainWindow::on_actiongaussian_edge_detection_triggered()
-{
-    this->getDataDialog->setWindowTitle("Write sigma coefficient value");
-    this->getDataDialog->setPlaceholderText("Sigma value");
-    getDataDialog->exec();
-    m_dataModel->setSigma(getDataDialog->value);
-    m_dataModel->setRadius(3*m_dataModel->sigma());
-    curImage = ImageProcessor::gaussianEdgeDetection(ImageProcessor::fromGrayImage(curImage), m_dataModel->sigma(), m_dataModel->radius(), attMat, matForTest);
-
-    edgeSelectionMode = true;
-
-    imageWidget->setImage(curImage);
-    imageWidget->show();
-
-    edgeSelectionMode = true;
-}
-
-void MainWindow::on_actionLaplacian_edge_detection_triggered()
-{
-    this->getDataDialog->setWindowTitle("Write sigma coefficient value");
-    this->getDataDialog->setPlaceholderText("Sigma value");
-    getDataDialog->exec();
-    m_dataModel->setSigma(getDataDialog->value);
-    m_dataModel->setRadius(3*m_dataModel->sigma());
-
-    Matrix2D<double> mat1;
-    Matrix2D<double> mat2;
-
-    mat1 = ImageProcessor::fromGrayImage(curImage);
-    mat2 = ImageProcessor::convMat(mat1, ImageProcessor::getLapl(m_dataModel->radius(), m_dataModel->radius(), m_dataModel->sigma()));
-    matForTest = mat2;
-    mat1 = ImageProcessor::elementWiseOperation(mat1,mat2,MatrixLambdas::Subtract<double>{});
-    matForTest = mat1;
-    mat1 = ImageProcessor::findEdges(mat1, 3);
-    curImage = ImageProcessor::toGrayImage(mat1);
-    edgeSelectionMode = true;
-}
-
-void MainWindow::on_imageUpdated(const QImage &newImage)
-{
-    clearMatrix2D(attMat);
-    clearMatrix2D(matForTest);
-    clearMatrix2D(imMat);
-
-    curImage = newImage;
-    im1 = curImage;
-
-    imMat = ImageProcessor::fromGrayImage(curImage);
-
-    int width = curImage.width();
-    int height = curImage.height();
-
-    attMat.resize(width);
-    for(int i = 0; i < width; i++) {
-        attMat[i].resize(height, 0);
-    }
-
-    matForTest.resize(width);
-    for(int i = 0; i < width; i++) {
-        matForTest[i].resize(height, 0.0);
-    }
-
-    imageWidget->setImage(curImage);
-    imageWidget->show();
-}
-
-void MainWindow::on_actionpcr_edge_detection_triggered()
-{
-
-}
+// ============================================================================
+// File Operations
+// ============================================================================
 
 void MainWindow::on_actionopen_file_triggered()
 {
@@ -125,121 +59,204 @@ void MainWindow::on_actionopen_file_triggered()
     openImDialog->setFileMode(QFileDialog::AnyFile);
     openImDialog->setNameFilter(tr("Images (*.png *.xpm *.jpg *.bmp *.tif *.tiff)"));
 
-    QImage newIm = QImage(openImDialog->getOpenFileName());
+    QString fileName = openImDialog->getOpenFileName();
+    if (fileName.isEmpty()) return;
+
+    QImage newIm(fileName);
+    if (newIm.isNull()) {
+        QMessageBox::warning(this, "Error", "Failed to load image: " + fileName);
+        return;
+    }
+
     m_dataModel->setCurrentImage(newIm);
     m_dataModel->setOriginalImage(newIm);
-    this->show();
+    edgeSelectionMode = false;
+    m_profileBuildingMode = false;
 }
 
 void MainWindow::on_actionsave_file_triggered()
 {
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image to save");
+        return;
+    }
+
     QFileDialog* saveImDialog = new QFileDialog(this);
     saveImDialog->setFileMode(QFileDialog::AnyFile);
     saveImDialog->setNameFilter(tr("Images (*.png *.xpm *.jpg *.bmp *.tif *.tiff)"));
     QString saveFileName = saveImDialog->getSaveFileName();
-    curImage.save(saveFileName);
-}
 
-void MainWindow::on_showcaseWidget_clicked(const QPoint &imagePosition)
-{
-    mPos.setX(imagePosition.x());
-    mPos.setY(imagePosition.y());
-    if(edgeSelectionMode){
-        int cnt = 0;
-        for(int i = 0; i < curImage.width(); i++){
-            for(int j = 0; j < curImage.height(); j++){
-                if(attMat[i][j] == int(attribute::isSelectedEdge)){
-                    attMat[i][j] = int(attribute::isEdge);
-                    curImage.setPixel(i,j,qRgb(255,255,255));
-                }
-                if(attMat[i][j] == int(attribute::isEdge)){
-                    cnt++;
-                }
-            }
-        }
-        selectedEdge.clear();
-        ImageProcessor::selectEdge(mPos, attMat, selectedEdge);
-        qDebug() << "selected edge size = " << selectedEdge.size();
-        qDebug() << "counter = " << cnt;
-        m_dataModel->setSelectedEdge(selectedEdge);
-        for(int i = 0; i < selectedEdge.size(); i++){
-            curImage.setPixel(selectedEdge[i],qRgb(0,255,255));
-        }
-        imageWidget->setImage(curImage);
-        imageWidget->show();
+    if (!saveFileName.isEmpty()) {
+        curImage.save(saveFileName);
     }
 }
 
-void MainWindow::catch_ImageCalculator(const QImage& image1, const QImage& image2, QString operation, bool newWindow, bool floatResult)
-{
-    Q_UNUSED(floatResult);
-    QImage res(image1.width(),image1.height(),QImage::Format_ARGB32);
-    Matrix2D<double> ddMat1 = ImageProcessor::fromGrayImage(image1);
-    Matrix2D<double> ddMat2 = ImageProcessor::fromGrayImage(image2);
-    if(operation == "Add"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::AddWithMaxClamp<double>{}));
-    } else if(operation == "Substract"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::SubtractWithZeroClamp<double>{}));
-    } else if(operation == "Multiply"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Multiply<double>{}));
-    } else if(operation == "Divide"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Divide<double>{}));
-    } else if(operation == "AND"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::BitwiseAND<double>{}));
-    } else if(operation == "OR"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::BitwiseOR<double>{}));
-    } else if(operation == "XOR"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::BitwiseXOR<double>{}));
-    } else if(operation == "Min"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Min<double>{}));
-    } else if(operation == "Max"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Max<double>{}));
-    } else if(operation == "Average"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Average<double>{}));
-    } else if(operation == "Difference"){
-        res = ImageProcessor::toGrayImage(ImageProcessor::elementWiseOperation(ddMat1,ddMat2,MatrixLambdas::Difference<double>{}));
-    } else if(operation == "Copy"){
-        res = image1;
-    } else if(operation == "Transparent-zero"){
+// ============================================================================
+// Image Processing Operations
+// ============================================================================
 
+void MainWindow::on_actiongaussian_blur_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
     }
-    if(newWindow) {
-        ImageShowcaseWidget* showIm = new ImageShowcaseWidget();
-        showIm->setImage(res);
-        showIm->show();
+
+    getDataDialog->setWindowTitle("Write sigma coefficient value");
+    getDataDialog->setPlaceholderText("Sigma value");
+    getDataDialog->setDefaultValue(5.0);
+
+    if (getDataDialog->exec()) {
+        double sigma = getDataDialog->getValue();
+        m_dataModel->setSigma(sigma);
+        m_dataModel->setRadius(8 * m_dataModel->sigma());
+
+        curImage = ImageProcessor::convImage(curImage,
+            ImageProcessor::getGauss(m_dataModel->radius(), m_dataModel->radius(), m_dataModel->sigma()));
+
+        updateImageDisplay();
+        im1 = curImage;
+
+        qDebug() << "Gaussian blur applied with sigma =" << sigma;
     }
-    else imageWidget->setImage(res);
-    clearMatrix2D(ddMat1);
-    clearMatrix2D(ddMat2);
+}
+
+void MainWindow::on_actiongaussian_edge_detection_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    getDataDialog->setWindowTitle("Write sigma coefficient value");
+    getDataDialog->setPlaceholderText("Sigma value");
+    getDataDialog->setDefaultValue(5.0);
+
+    if (getDataDialog->exec()) {
+        m_dataModel->setSigma(getDataDialog->getValue());
+        m_dataModel->setRadius(8 * m_dataModel->sigma());
+
+        curImage = ImageProcessor::gaussianEdgeDetection(
+            ImageProcessor::fromGrayImage(curImage),
+            m_dataModel->sigma(),
+            m_dataModel->radius(),
+            attMat);
+
+        updateImageDisplay();
+        edgeSelectionMode = true;
+
+        qDebug() << "Gaussian edge detection applied";
+    }
+}
+
+void MainWindow::on_actionLaplacian_edge_detection_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    getDataDialog->setWindowTitle("Write sigma coefficient value");
+    getDataDialog->setPlaceholderText("Sigma value");
+    getDataDialog->setDefaultValue(3.0);
+
+    if (getDataDialog->exec()) {
+        m_dataModel->setSigma(getDataDialog->getValue());
+        m_dataModel->setRadius(3 * m_dataModel->sigma());
+
+        Matrix2D<double> mat1 = ImageProcessor::fromGrayImage(curImage);
+        Matrix2D<double> mat2 = ImageProcessor::convMat(mat1,
+            ImageProcessor::getLapl(m_dataModel->radius(), m_dataModel->radius(), m_dataModel->sigma()));
+
+        matForTest = mat2;
+        mat1 = ImageProcessor::elementWiseOperation(mat1, mat2, MatrixLambdas::Subtract<double>{});
+        matForTest = mat1;
+        mat1 = ImageProcessor::findEdges(mat1, 3);
+        curImage = ImageProcessor::toGrayImage(mat1);
+
+        updateImageDisplay();
+        edgeSelectionMode = true;
+
+        qDebug() << "Laplacian edge detection applied";
+    }
+}
+
+void MainWindow::on_actionsharpen_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    Matrix2D<double> kernel = {{-1, -1, -1},
+                               {-1,  9, -1},
+                               {-1, -1, -1}};
+    curImage = ImageProcessor::convImage(curImage, kernel);
+
+    updateImageDisplay();
+    im1 = curImage;
+
+    qDebug() << "Sharpen filter applied";
 }
 
 void MainWindow::on_actiongradient_X_and_Y_triggered()
 {
-    Matrix2D<double> xGrad, yGrad;
-    xGrad = ImageProcessor::fromGrayImage(curImage);
-    xGrad = ImageProcessor::convMat(xGrad, ImageProcessor::getXGradCore(iRad,iRad,dSigma));
-    ImageProcessor::toBlueRedImage(xGrad, 255., 255.).save("D:/projects/ERWS/Grad/XGradImage.png");
-    yGrad = ImageProcessor::fromGrayImage(curImage);
-    yGrad = ImageProcessor::convMat(yGrad, ImageProcessor::getYGradCore(iRad,iRad,dSigma));
-    ImageProcessor::toBlueRedImage(yGrad, 255., 255.).save("D:/projects/ERWS/Grad/YGradImage.png");
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    Matrix2D<double> xGrad = ImageProcessor::fromGrayImage(curImage);
+    xGrad = ImageProcessor::convMat(xGrad, ImageProcessor::getXGradCore(iRad, iRad, dSigma));
+    ImageProcessor::toBlueRedImage(xGrad, 255., 255.).save("XGradImage.png");
+
+    Matrix2D<double> yGrad = ImageProcessor::fromGrayImage(curImage);
+    yGrad = ImageProcessor::convMat(yGrad, ImageProcessor::getYGradCore(iRad, iRad, dSigma));
+    ImageProcessor::toBlueRedImage(yGrad, 255., 255.).save("YGradImage.png");
+
+    qDebug() << "Gradient images saved to XGradImage.png and YGradImage.png";
 }
 
-void MainWindow::on_actiondraw_profile_triggered()
-{
-    QVector<double> x, y;
-    for(int i = 0; i < curImage.height(); i++){
-        x.push_back(i);
-        y.push_back(qGray(curImage.pixel(curImage.width()/2,i)));
-    }
-    GrWid->plotGraph(x,y);
-    GrWid->show();
-}
+// ============================================================================
+// Sample Images
+// ============================================================================
 
 void MainWindow::on_actionTwo_hollows_triggered()
 {
     QImage setImage = ImageProcessor::sampleTwoHollows();
     m_dataModel->setCurrentImage(setImage);
     m_dataModel->setOriginalImage(setImage);
+    edgeSelectionMode = false;
+    m_profileBuildingMode = false;
+
+
+    // First circle (bottom) / Pervaya okruzhnost' (snizu)
+    int centerX1 = 100, centerY1 = 135, radius1 = 40;
+    // Second circle (top) / Vtoraya okruzhnost' (sverkhu)
+    int centerX2 = 100, centerY2 = 65, radius2 = 30;
+
+    for(int i = 0; i < 200; i++){
+        for(int j = 0; j < 200; j++){
+            // Check first circle / Proveryaem pervuyu okruzhnost'
+            int dx1 = i - centerX1;
+            int dy1 = j - centerY1;
+            int distSq1 = dx1*dx1 + dy1*dy1;
+
+            if(abs(distSq1 - radius1 * radius1) <= 1){
+                trueEdge.push_back({i,j});
+            }
+
+            // Check second circle / Proveryaem vtoruyu okruzhnost'
+            int dx2 = i - centerX2;
+            int dy2 = j - centerY2;
+            int distSq2 = dx2*dx2 + dy2*dy2;
+
+            if(abs(distSq2 - radius2 * radius2) <= 1){
+                trueEdge.push_back({i,j});
+            }
+        }
+    }
+
 }
 
 void MainWindow::on_actionTwo_hollows_big_triggered()
@@ -247,106 +264,309 @@ void MainWindow::on_actionTwo_hollows_big_triggered()
     QImage setImage = ImageProcessor::sampleTwoHollowsBig();
     m_dataModel->setCurrentImage(setImage);
     m_dataModel->setOriginalImage(setImage);
+    edgeSelectionMode = false;
+    m_profileBuildingMode = false;
 }
 
-void MainWindow::on_actionimage_calculator_triggered()
+// ============================================================================
+// Profile Operations
+// ============================================================================
+
+void MainWindow::on_actiondraw_profile_triggered()
 {
-    imCalculator->show();
-    imCalculator->setWindowTitle("Image calculator");
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    QVector<double> x, y;
+    int centerX = curImage.width() / 2;
+
+    for (int i = 0; i < curImage.height(); i++) {
+        x.push_back(i);
+        y.push_back(qGray(curImage.pixel(centerX, i)));
+    }
+
+    GrWid->plotGraph(x, y);
+    GrWid->setAxisLabels("Y coordinate", "Intensity");
+    GrWid->setTitle(QString("Horizontal Profile at x = %1").arg(centerX));
+    GrWid->show();
 }
 
-void MainWindow::on_actionsharpen_triggered()
+void MainWindow::on_actionProfileBetweenPoints_triggered()
 {
-    Matrix2D<double> kernel = {{-1,-1,-1},
-                               {-1, 9,-1},
-                               {-1,-1,-1}};
-    curImage = ImageProcessor::convImage(curImage, kernel);
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
 
-    imageWidget->setImage(curImage);
-    imageWidget->show();
-    im1 = curImage;
+    if (profilePoints.size() < 2) {
+        m_profileBuildingMode = true;
+        profilePoints.clear();/*
+        QMessageBox::information(this, "Profile Building",
+            "Click two points on the image to build a profile.\n"
+            "The profile will show intensity values along the line between the points.");*/
+    } else {
+        // Build profile between the two selected points
+        QVector<double> profile = ImageProcessor::buildProfileBetweenPoints(
+            profilePoints[0], profilePoints[1], curImage);
+
+        if (profile.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Failed to build profile");
+            return;
+        }
+
+        // Display profile
+        QVector<double> x(profile.size());
+        for (int i = 0; i < profile.size(); i++) {
+            x[i] = i;
+        }
+
+        GrWid->plotGraph(x, profile);
+        GrWid->setAxisLabels("Distance along line (pixels)", "Intensity");
+        GrWid->setTitle(QString("Profile from (%1,%2) to (%3,%4)")
+            .arg(profilePoints[0].x()).arg(profilePoints[0].y())
+            .arg(profilePoints[1].x()).arg(profilePoints[1].y()));
+        GrWid->show();
+
+        // Also show statistical summary
+        double minVal = *std::min_element(profile.begin(), profile.end());
+        double maxVal = *std::max_element(profile.begin(), profile.end());
+        double sum = 0.0;
+        for (double v : profile) sum += v;
+        double mean = sum / profile.size();
+
+        qDebug() << "Profile Statistics:";
+        qDebug() << "  Length:" << profile.size() << "pixels";
+        qDebug() << "  Min:" << minVal;
+        qDebug() << "  Max:" << maxVal;
+        qDebug() << "  Mean:" << mean;
+
+        // Reset for next profile
+        profilePoints.clear();
+        m_profileBuildingMode = false;
+    }
+}
+
+void MainWindow::on_actionClearProfilePoints_triggered()
+{
+    profilePoints.clear();
+    m_profileBuildingMode = false;
+//    QMessageBox::information(this, "Profile Building", "Profile points cleared.");
+}
+
+void MainWindow::onImageClickedForProfile(const QPoint& imagePosition)
+{
+    if (!m_profileBuildingMode) return;
+
+    profilePoints.append(imagePosition);
+
+    if (profilePoints.size() == 1) {/*
+        QMessageBox::information(this, "Profile Building",
+            QString("First point selected at (%1,%2). Click second point.")
+            .arg(imagePosition.x()).arg(imagePosition.y()));*/
+    } else if (profilePoints.size() == 2) {
+        // Build and display profile
+        QVector<double> profile = ImageProcessor::buildProfileBetweenPoints(
+            profilePoints[0], profilePoints[1], curImage);
+
+        if (!profile.isEmpty()) {
+            QVector<double> x(profile.size());
+            for (int i = 0; i < profile.size(); i++) x[i] = i;
+
+            GrWid->plotGraph(x, profile);
+            GrWid->setAxisLabels("Distance along line (pixels)", "Intensity");
+            GrWid->setTitle(QString("Profile from (%1,%2) to (%3,%4)")
+                .arg(profilePoints[0].x()).arg(profilePoints[0].y())
+                .arg(profilePoints[1].x()).arg(profilePoints[1].y()));
+            GrWid->show();
+        }
+
+        profilePoints.clear();
+        m_profileBuildingMode = false;
+    }
+}
+
+// ============================================================================
+// Statistics Operations
+// ============================================================================
+
+void MainWindow::on_actionShowStatistics_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    auto stats = ImageProcessor::computeImageStatistics(curImage, attMat);
+    showStatisticsDialog(stats);
+}
+
+void MainWindow::on_actionExportStatistics_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Save Statistics",
+        "", "Text Files (*.txt);;All Files (*)");
+
+    if (fileName.isEmpty()) return;
+
+    auto stats = ImageProcessor::computeImageStatistics(curImage, attMat);
+    if (ImageProcessor::saveStatisticsToFile(stats, fileName)) {
+        QMessageBox::information(this, "Success", "Statistics saved to " + fileName);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to save statistics");
+    }
+}
+
+void MainWindow::on_actionExportHistogram_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Export Histogram",
+        "", "CSV Files (*.csv);;All Files (*)");
+
+    if (fileName.isEmpty()) return;
+
+    auto stats = ImageProcessor::computeImageStatistics(curImage, attMat);
+    if (ImageProcessor::exportHistogramToCSV(stats, fileName)) {
+        QMessageBox::information(this, "Success", "Histogram exported to " + fileName);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to export histogram");
+    }
+}
+
+// ============================================================================
+// Edge Selection and Refinement
+// ============================================================================
+
+void MainWindow::on_showcaseWidget_clicked(const QPoint &imagePosition)
+{
+    mPos.setX(imagePosition.x());
+    mPos.setY(imagePosition.y());
+
+    // Handle profile building mode
+    if (m_profileBuildingMode) {
+        onImageClickedForProfile(imagePosition);
+        return;
+    }
+
+    // Handle edge selection mode
+    if (edgeSelectionMode && !attMat.empty()) {
+        resetEdgeSelection();
+
+        selectedEdge.clear();
+        for(int i = 0; i < attMat.size(); i++) {
+            for(int j = 0; j < attMat[0].size(); j++) {
+                if(attMat[i][j] == static_cast<int>(attribute::isEdge))
+                    selectedEdge.push_back({i,j});
+            }
+        }
+//        ImageProcessor::selectEdge(mPos, attMat, selectedEdge);
+
+        qDebug() << "Selected edge size =" << selectedEdge.size();
+
+        m_dataModel->setSelectedEdge(selectedEdge);
+
+        // Highlight selected edge in cyan
+        for (int i = 0; i < selectedEdge.size(); i++) {
+            curImage.setPixel(selectedEdge[i], qRgb(0, 255, 255));
+        }
+
+        updateImageDisplay();
+    }
+}
+
+void MainWindow::resetEdgeSelection()
+{
+    if (attMat.empty()) return;
+
+    for (int i = 0; i < curImage.width(); i++) {
+        for (int j = 0; j < curImage.height(); j++) {
+            if (attMat[i][j] == static_cast<int>(attribute::isSelectedEdge)) {
+                attMat[i][j] = static_cast<int>(attribute::isEdge);
+                curImage.setPixel(i, j, qRgb(255, 255, 255));
+            }
+        }
+    }
 }
 
 void MainWindow::on_actiontest_triggered()
 {
-    // Check if edge selection mode is active / Proveryaem aktivirovan li rezhim vybora granic
-    if(!edgeSelectionMode) {
-        qDebug() << "Error: Edge selection mode is off";
+    if (!edgeSelectionMode) {
+        QMessageBox::warning(this, "Error", "Edge selection mode is off. Run edge detection first.");
         return;
     }
 
-    // Collect all selected edge points / Sobiraem vse vybrannye granichnye tochki
-    QVector<QPoint> selectedEdgePoints;
-    for(int i = 0; i < (int)attMat.size(); i++) {
-        for(int j = 0; j < (int)attMat[i].size(); j++) {
-            if(attMat[i][j] == static_cast<int>(attribute::isSelectedEdge)) {
+    // Collect all selected edge points
+    QVector<QPoint> selectedEdgePoints = selectedEdge;
+    for (int i = 0; i < (int)attMat.size(); i++) {
+        for (int j = 0; j < (int)attMat[i].size(); j++) {
+            if (attMat[i][j] == static_cast<int>(attribute::isSelectedEdge)) {
                 selectedEdgePoints.append(QPoint(i, j));
             }
         }
     }
 
-    // Check if any points were selected / Proveryaem, byli li vybrany tochki
-    if(selectedEdgePoints.isEmpty()) {
-        qDebug() << "No edge points selected";
+    if (selectedEdgePoints.isEmpty()) {
+        QMessageBox::warning(this, "Error", "No edge points selected");
         return;
     }
 
     qDebug() << "Refining" << selectedEdgePoints.size() << "edge points";
 
-    // Create white background image for visualization / Sozdaem izobrazhenie s belym fonom dlya vizualizacii
+    // Create white background image for visualization
     QImage whiteImage = m_dataModel->originalImage();
-    for(int i = 0; i < whiteImage.width(); i++) {
-        for(int j = 0; j < whiteImage.height(); j++) {
-            if(qGray(whiteImage.pixel(i,j)) != 0) {
-                whiteImage.setPixel(i, j, qRgb(255, 255, 255));
-            } else {
-                whiteImage.setPixel(i, j, qRgb(0, 0, 0));
-            }
-        }
-    }
+//    for (int i = 0; i < whiteImage.width(); i++) {
+//        for (int j = 0; j < whiteImage.height(); j++) {
+//            if (qGray(whiteImage.pixel(i, j)) != 0) {
+//                whiteImage.setPixel(i, j, qRgb(255, 255, 255));
+//            } else {
+//                whiteImage.setPixel(i, j, qRgb(0, 0, 0));
+//            }
+//        }
+//    }
 
-    // Image dimensions / Razmery izobrazheniya
+    // Image dimensions
     int NX = m_dataModel->originalImage().width();
     int NY = m_dataModel->originalImage().height();
 
-    // Gaussian blur parameters / Parametry razmytiya Gaussa
-    double sigma0 = 8.0, sigma01 = sqrt(sigma0*sigma0 + 4.*4.);
-    int NS = 2*int(4*sigma01+0.5);
+    // Gaussian blur parameters
+    double sigma0 = 8.0;
+    double sigma01 = sqrt(sigma0 * sigma0 + 4.0 * 4.0);
+    int NS = 2 * int(4 * sigma01 + 0.5);
 
-    // Two different sigma values for edge detection / Dva raznyh znacheniya sigma dlya detektirovaniya granic
-    double sigma1 = 4., sigma2 = 8.;
+    // Two different sigma values for edge detection
+    double sigma1 = 4.0;
+    double sigma2 = 8.0;
     double sigma_max = max(sigma1, sigma2);
 
-    // Prepare matrices (once for all points) / Podgotavlivaem matricy (odin raz dlya vseh tochek)
+    // Prepare matrices
     Matrix2D<double> A0 = ImageProcessor::fromGrayImage(m_dataModel->originalImage());
     Matrix2D<double> B1 = ImageProcessor::convMat(A0, ImageProcessor::getGauss(NS, NS, sigma0));
     Matrix2D<double> B01 = ImageProcessor::convMat(A0, ImageProcessor::getGauss(NS, NS, sigma01));
     Matrix2D<double> A = B1;
 
-    // Update kernel size for max sigma / Obnovlyaem razmer yadra dlya maksimalnoy sigma
-    NS = 2*int(4*sigma_max+0.5);
+    // Update kernel size for max sigma
+    NS = 2 * int(4 * sigma_max + 0.5);
 
-    // Calculate gradients / Vychislyaem gradienty
+    // Calculate gradients
     Matrix2D<double> B = A;
     Matrix2D<double> GxW1 = ImageProcessor::convMat(B, ImageProcessor::getXGradCore(NS, NS, sigma1));
     Matrix2D<double> GyW1 = ImageProcessor::convMat(B, ImageProcessor::getYGradCore(NS, NS, sigma1));
 
-    // Profile parameters / Parametry profilya
-    int n_sigma = 10;           // Number of sigma steps / Kolichestvo shagov sigma
-    int n_myu = 200;             // Number of mu points / Kolichestvo tochek mu
-    double sigma_myu = min(sigma1, sigma2);  // Sigma for profile / Sigma dlya profilya
+    // Profile parameters
+    int n_sigma = 10;
+    int n_myu = 200;
+    double sigma_myu = min(sigma1, sigma2);
     int NN = 100;
     int otstup = 15;
-
-    // Generate mu values (same for all points) / Generiruem znacheniya mu (odinakovye dlya vseh tochek)
-    QVector<double> mu;
-    for(int s = 0; s < n_myu; s++) {
-        double val = -n_sigma*sigma_myu + s*(2*n_sigma*sigma_myu)/n_myu;
-        mu.push_back(val);
-    }
-
-    // Vector to store refined positions / Vektor dlya hraneniya utochnennyh poziciy
-    QVector<QPointF> refinedPositions;
 
     RefinementParameters params;
     params.A = A;
@@ -362,13 +582,17 @@ void MainWindow::on_actiontest_triggered()
     params.sigma1 = sigma1;
     params.sigma2 = sigma2;
 
-    // Process each selected point / Obrabatyvaem kazhduyu vybrannuyu tochku
-    for(int pointIdx = 0; pointIdx < selectedEdgePoints.size(); pointIdx++) {
-        int n0 = selectedEdgePoints[pointIdx].x(), m0 = selectedEdgePoints[pointIdx].y();
+    QVector<QPointF> refinedPositions;
+
+    // Process each selected point
+    for (int pointIdx = 0; pointIdx < selectedEdgePoints.size(); pointIdx++) {
+        int n0 = selectedEdgePoints[pointIdx].x();
+        int m0 = selectedEdgePoints[pointIdx].y();
 
         double ex = GxW1[n0][m0];
         double ey = GyW1[n0][m0];
-        double gradMag = sqrt(ex*ex+ ey*ey);
+        double gradMag = sqrt(ex * ex + ey * ey);
+
         if (gradMag > 1e-6) {
             ex /= gradMag;
             ey /= gradMag;
@@ -385,139 +609,116 @@ void MainWindow::on_actiontest_triggered()
         double m_new = result.refinedPosition.y();
         refinedPositions.append(QPointF(n_new, m_new));
 
-        // Visualization on white image / Vizualizaciya na belom izobrazhenii
-        // Original point - blue / Iskhodnaya tochka - sinii
-        if(n0 >= 0 && n0 < whiteImage.width() && m0 >= 0 && m0 < whiteImage.height()) {
-            whiteImage.setPixel(n0, m0, qRgb(0, 0, 255));
+        // Visualization
+        if (n0 >= 0 && n0 < whiteImage.width() && m0 >= 0 && m0 < whiteImage.height()) {
+            whiteImage.setPixel(n0, m0, qRgb(0, 0, 255));  // Blue - gradient
         }
 
-        // Refined point - red / Utochnennaya tochka - krasnyi
-        if(n_new >= 0 && n_new < whiteImage.width() && m_new >= 0 && m_new < whiteImage.height()) {
-            whiteImage.setPixel(n_new, m_new, qRgb(255, 0, 0));
+        if (n_new >= 0 && n_new < whiteImage.width() && m_new >= 0 && m_new < whiteImage.height()) {
+            whiteImage.setPixel(n_new, m_new, qRgb(255, 0, 0));  // Red - refined
         }
 
-        qDebug() << "Point" << pointIdx + 1 << " / " << selectedEdgePoints.size()
+        qDebug() << "Point" << pointIdx + 1 << "/" << selectedEdgePoints.size()
                  << "refined: (" << n0 << "," << m0 << ") -> ("
                  << n_new << "," << m_new << ") shift =" << result.FFF1_1;
     }
 
-    // Statistics for all points / Statistika po vsem tochkam
-    qDebug() << "\n=== REFINEMENT SUMMARY / STATISTIKA UTOCHNENIYA ===";
-    qDebug() << "Total points processed / Vsego obrabotano tochek:" << refinedPositions.size();
+    for(int i = 0; i < trueEdge.size(); i++) {
+        whiteImage.setPixel(trueEdge[i].x(), trueEdge[i].y(), qRgb(0, 255, 0));  // Green - true
+    }
+
+    // Statistics summary
+    qDebug() << "\n=== REFINEMENT SUMMARY ===";
+    qDebug() << "Total points processed:" << refinedPositions.size();
 
     double avgShiftX = 0.0, avgShiftY = 0.0;
-    for(int i = 0; i < selectedEdgePoints.size(); i++) {
+    for (int i = 0; i < selectedEdgePoints.size(); i++) {
         double shiftX = refinedPositions[i].x() - selectedEdgePoints[i].x();
         double shiftY = refinedPositions[i].y() - selectedEdgePoints[i].y();
         avgShiftX += shiftX;
         avgShiftY += shiftY;
-        qDebug() << "Point" << i+1 << ": original / iskhodnaya (" << selectedEdgePoints[i].x()
-                 << "," << selectedEdgePoints[i].y() << ") -> refined / utochnennaya ("
-                 << refinedPositions[i].x() << "," << refinedPositions[i].y()
-                 << ") shift / sdvig (" << shiftX << "," << shiftY << ")";
+        qDebug() << "Point" << i+1 << ": (" << selectedEdgePoints[i].x() << "," << selectedEdgePoints[i].y()
+                 << ") -> (" << refinedPositions[i].x() << "," << refinedPositions[i].y()
+                 << ") shift (" << shiftX << "," << shiftY << ")";
     }
-    avgShiftX /= refinedPositions.size();
-    avgShiftY /= refinedPositions.size();
-    qDebug() << "Average shift / Srednii sdvig: (" << avgShiftX << "," << avgShiftY << ")";
 
-    // Show final image / Pokazyvaem finalnoe izobrazhenie
+    if (refinedPositions.size() > 0) {
+        avgShiftX /= refinedPositions.size();
+        avgShiftY /= refinedPositions.size();
+        qDebug() << "Average shift: (" << avgShiftX << "," << avgShiftY << ")";
+    }
+
+    // Show final result
     ImageShowcaseWidget* resultWidget = new ImageShowcaseWidget();
     resultWidget->setImage(whiteImage);
-    resultWidget->setWindowTitle(QString("Edge Refinement Result / Rezultat utochneniya granic - %1 points").arg(refinedPositions.size()));
+    resultWidget->setWindowTitle(QString("Edge Refinement Result - %1 points").arg(refinedPositions.size()));
     resultWidget->show();
 
-    // Save result / Sohranyaem rezultat
-    resultWidget->getImage().save("testing.png");
-
-    qDebug() << "Edge refinement completed / Utochnenie granic zaversheno";
+    qDebug() << "Edge refinement completed";
 }
 
 void MainWindow::on_actiontest_002_triggered()
 {
-    // Generate test image with two hollows / Sozdaem testovoe izobrazhenie s dvumya polostyami
+    // Generate test image
     QImage setImage = ImageProcessor::sampleTwoHollows();
     m_dataModel->setCurrentImage(setImage);
     m_dataModel->setOriginalImage(setImage);
 
-    // Image dimensions / Razmery izobrazheniya
+    // Image dimensions
     int NX = setImage.width();
     int NY = setImage.height();
 
-    // Gaussian blur parameters / Parametry razmytiya Gaussa
-    double sigma0 = 8.0, sigma01 = sqrt(sigma0*sigma0 + 4.*4.);
-    int NS = 2*int(4*sigma01+0.5);
-    qDebug() << "NS = " << NS << "\n";
+    // Gaussian blur parameters
+    double sigma0 = 8.0;
+    double sigma01 = sqrt(sigma0 * sigma0 + 4.0 * 4.0);
+    int NS = 2 * int(4 * sigma01 + 0.5);
+    qDebug() << "NS =" << NS;
 
-    // Two different sigma values for edge detection / Dva raznyh znacheniya sigma dlya detektirovaniya granic
-    double sigma1 = 4., sigma2 = 8.;
+    // Two different sigma values for edge detection
+    double sigma1 = 4.0;
+    double sigma2 = 8.0;
     double sigma_max = max(sigma1, sigma2);
 
-    // Convert images to matrices and apply Gaussian blur / Preobrazuem izobrazheniya v matricy i primenyaem razmytie Gaussa
+    // Convert images to matrices and apply Gaussian blur
     Matrix2D<double> A0 = ImageProcessor::fromGrayImage(m_dataModel->currentImage());
-    Matrix2D<double> B1 = ImageProcessor::convMat(A0,ImageProcessor::getGauss(NS,NS,sigma0));
-    Matrix2D<double> B01 = ImageProcessor::convMat(A0,ImageProcessor::getGauss(NS,NS,sigma01));
+    Matrix2D<double> B1 = ImageProcessor::convMat(A0, ImageProcessor::getGauss(NS, NS, sigma0));
+    Matrix2D<double> B01 = ImageProcessor::convMat(A0, ImageProcessor::getGauss(NS, NS, sigma01));
     Matrix2D<double> A = B1;
 
-    // Statistics of blurred image / Statistika razmytogo izobrazheniya
-    double A_max = max(A);
-    double A_min= min(A);
-    int NSIZE = A.size();
-
-    qDebug() << "max(B1) = " << A_max << "\n";
-    qDebug() << "min(B1) = " << A_min << "\n";
-
-    // Show profiles before and after convolution / Pokazyvaem profili do i posle svertki
+    // Show profiles before and after convolution
     GraphWidget* grwid1 = new GraphWidget();
-    QVector<double> profileA, profileA0;
-    QVector<double> profileX;
-    for(int i = 0; i < NSIZE; i++) {
+    QVector<double> profileA, profileA0, profileX;
+    for (int i = 0; i < (int)A.size(); i++) {
         profileA.push_back(A[100][i]);
         profileA0.push_back(A0[100][i]);
         profileX.push_back(i);
     }
     grwid1->plotTwoGraphs(profileX, profileA, profileX, profileA0);
-    grwid1->setWindowTitle(QString("Profiles before and after convolution"));
+    grwid1->setWindowTitle("Profiles before and after convolution");
     grwid1->show();
 
-    // Update kernel size for max sigma / Obnovlyaem razmer yadra dlya maksimalnoy sigma
-    NS = 2*int(4*sigma_max+0.5);
-    qDebug() << "NS = " << NS << "\n";
+    // Update kernel size for max sigma
+    NS = 2 * int(4 * sigma_max + 0.5);
+    qDebug() << "NS =" << NS;
 
-    // Laplacian kernels for edge detection / Yadra Laplasa dlya detektirovaniya granic
-    Matrix2D<double> MS1 = ImageProcessor::getLapl(NS,NS,sigma1);
-    Matrix2D<double> MS2 = ImageProcessor::getLapl(NS,NS,sigma2);
-
-    // Perform Gaussian edge detection / Vypolnyaem detektirovanie granic po Gaussu
-    curImage = ImageProcessor::gaussianEdgeDetection(ImageProcessor::fromGrayImage(curImage), sigma_max, NS, attMat, matForTest);
+    // Perform Gaussian edge detection
+    curImage = ImageProcessor::gaussianEdgeDetection(
+        ImageProcessor::fromGrayImage(curImage), sigma_max, NS, attMat);
     edgeSelectionMode = true;
-    imageWidget->setImage(curImage);
-    imageWidget->show();
+    updateImageDisplay();
 
-    // Calculate gradients / Vychislyaem gradienty
+    // Select test point for refinement
+    int n0 = 78, m0 = 83;
+
+    // Calculate gradients
     Matrix2D<double> B = A;
     Matrix2D<double> GxW1 = ImageProcessor::convMat(B, ImageProcessor::getXGradCore(NS, NS, sigma1));
     Matrix2D<double> GyW1 = ImageProcessor::convMat(B, ImageProcessor::getYGradCore(NS, NS, sigma1));
 
-    // Gradient statistics / Statistika gradientov
-    double X_max = max(GxW1), X_min = min(GxW1);
-    double Y_max = max(GyW1), Y_min = min(GyW1);
-    qDebug() << "x grad min : " << X_min << ", max : " << X_max << ";\n";
-    qDebug() << "y grad min : " << Y_min << ", max : " << Y_max << ";\n";
-
-    //****************************************************************************************************
-    // Select test point and normalize its gradient / Vyberaem testovuyu tochku i normalizuem ee gradient
-    // Start refining position / Nachynaem utochnenie positsii
-    //****************************************************************************************************
-//    int n0 = 109, m0 = 87;
-//    int n0 = 102, m0 = 89;
-//    int n0 = 119, m0 = 86;
-//    int n0 = 116, m0 = 84;
-//    int n0 = 111, m0 = 86;
-//    int n0 = 90, m0 = 87;
-    int n0 = 78, m0 = 83;
     double ex = GxW1[n0][m0];
     double ey = GyW1[n0][m0];
-    double gradMag = sqrt(ex*ex+ ey*ey);
+    double gradMag = sqrt(ex * ex + ey * ey);
+
     if (gradMag > 1e-6) {
         ex /= gradMag;
         ey /= gradMag;
@@ -525,23 +726,10 @@ void MainWindow::on_actiontest_002_triggered()
         ex = 1.0;
         ey = 0.0;
     }
-    qDebug() << "x grad at (n0,m0): " << ex << ";\n";
-    qDebug() << "y grad at (n0,m0): " << ey << ";\n";
 
-    // Calculate gradient magnitude map / Vychislyaem kartu velichiny gradienta
-    Matrix2D<double> MGW1(NSIZE,std::vector<double>(NSIZE,0.0));
-    for(int i = 0; i < NSIZE; i++) {
-        for(int j = 0; j < NSIZE; j++) {
-            MGW1[i][j] = sqrt(GxW1[i][j]*GxW1[i][j] + GyW1[i][j]*GyW1[i][j]);
-        }
-    }
+    qDebug() << "x grad at (n0,m0):" << ex;
+    qDebug() << "y grad at (n0,m0):" << ey;
 
-    // Show gradient magnitude image / Pokazyvaem izobrazhenie velichiny gradienta
-    QImage mgw_image = ImageProcessor::toGrayImage(MGW1);
-    ImageShowcaseWidget* mgw_widget = new ImageShowcaseWidget();
-    mgw_widget->setImage(mgw_image);
-    mgw_widget->show();
-    qDebug() << "mgw image at (n0,m0): " << MGW1[n0][m0] << ";\n";
     qDebug() << "180./pi*acos(ex) = " << 180./pi*acos(ex) << "\n";
     qDebug() << "180./pi*acos(ex) = " << 180./pi*acos(ey) << "\n";
 
@@ -880,4 +1068,177 @@ void MainWindow::on_actiontest_002_triggered()
     resultWidget->setImage(whiteIm);
     resultWidget->setWindowTitle("Edge Refinement Result");
     resultWidget->show();
+}
+
+// ============================================================================
+// Image Calculator
+// ============================================================================
+
+void MainWindow::on_actionimage_calculator_triggered()
+{
+    if (curImage.isNull()) {
+        QMessageBox::warning(this, "Error", "No image loaded");
+        return;
+    }
+
+    imCalculator->setImage1(curImage, "Current Image");
+    imCalculator->show();
+    imCalculator->setWindowTitle("Image Calculator");
+}
+
+void MainWindow::catch_ImageCalculator(const QImage& image1, const QImage& image2,
+                                        QString operation, bool newWindow, bool floatResult)
+{
+    Q_UNUSED(floatResult);
+
+    if (image1.isNull()) {
+        qDebug() << "Error: Image 1 is null";
+        return;
+    }
+
+    QImage res(image1.width(), image1.height(), QImage::Format_ARGB32);
+    Matrix2D<double> ddMat1 = ImageProcessor::fromGrayImage(image1);
+    Matrix2D<double> ddMat2 = ImageProcessor::fromGrayImage(image2);
+
+    if (operation == "Add") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::AddWithMaxClamp<double>{}));
+    } else if (operation == "Subtract") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::SubtractWithZeroClamp<double>{}));
+    } else if (operation == "Multiply") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Multiply<double>{}));
+    } else if (operation == "Divide") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Divide<double>{}));
+    } else if (operation == "AND") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::BitwiseAND<double>{}));
+    } else if (operation == "OR") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::BitwiseOR<double>{}));
+    } else if (operation == "XOR") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::BitwiseXOR<double>{}));
+    } else if (operation == "Min") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Min<double>{}));
+    } else if (operation == "Max") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Max<double>{}));
+    } else if (operation == "Average") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Average<double>{}));
+    } else if (operation == "Difference") {
+        res = ImageProcessor::toGrayImage(
+            ImageProcessor::elementWiseOperation(ddMat1, ddMat2, MatrixLambdas::Difference<double>{}));
+    } else if (operation == "Copy") {
+        res = image1;
+    }
+
+    if (newWindow) {
+        ImageShowcaseWidget* showIm = new ImageShowcaseWidget();
+        showIm->setImage(res);
+        showIm->setWindowTitle("Image Calculator Result");
+        showIm->show();
+    } else {
+        updateImageDisplay();
+    }
+}
+
+// ============================================================================
+// Image Display and Updates
+// ============================================================================
+
+void MainWindow::on_imageUpdated(const QImage &newImage)
+{
+    // Clear matrices
+    clearMatrix2D(attMat);
+    clearMatrix2D(matForTest);
+    clearMatrix2D(imMat);
+
+    curImage = newImage;
+    im1 = curImage;
+    imMat = ImageProcessor::fromGrayImage(curImage);
+
+    int width = curImage.width();
+    int height = curImage.height();
+
+    // Resize matrices
+    attMat.resize(width);
+    for (int i = 0; i < width; i++) {
+        attMat[i].resize(height, 0);
+    }
+
+    matForTest.resize(width);
+    for (int i = 0; i < width; i++) {
+        matForTest[i].resize(height, 0.0);
+    }
+
+    updateImageDisplay();
+}
+
+void MainWindow::updateImageDisplay()
+{
+    imageWidget->setImage(curImage);
+    imageWidget->show();
+}
+
+void MainWindow::showStatisticsDialog(const ImageProcessor::ImageStatistics& stats)
+{
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Image Statistics");
+    msgBox.setText(stats.toString());
+    msgBox.setTextFormat(Qt::PlainText);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+
+    // Add export buttons
+    QPushButton* exportStatsBtn = msgBox.addButton("Export Statistics", QMessageBox::ActionRole);
+    QPushButton* exportHistBtn = msgBox.addButton("Export Histogram", QMessageBox::ActionRole);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == exportStatsBtn) {
+        on_actionExportStatistics_triggered();
+    } else if (msgBox.clickedButton() == exportHistBtn) {
+        on_actionExportHistogram_triggered();
+    }
+}
+
+void MainWindow::showProfileDialog(const QVector<double>& profile, const QString& title)
+{
+    if (profile.isEmpty()) return;
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(title);
+    dialog.resize(600, 400);
+
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+
+    GraphWidget* graph = new GraphWidget(&dialog);
+    QVector<double> x(profile.size());
+    for (int i = 0; i < profile.size(); i++) x[i] = i;
+    graph->plotGraph(x, profile);
+    graph->setAxisLabels("Distance (pixels)", "Intensity");
+    graph->setTitle(title);
+
+    layout->addWidget(graph);
+
+    QPushButton* closeBtn = new QPushButton("Close", &dialog);
+    layout->addWidget(closeBtn);
+
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    dialog.exec();
+}
+
+// ============================================================================
+// Unused Actions (Placeholders)
+// ============================================================================
+
+void MainWindow::on_actionpcr_edge_detection_triggered()
+{
+    QMessageBox::information(this, "PCR Edge Detection",
+        "PCR edge detection is not yet implemented. Use test_001 for refinement.");
 }

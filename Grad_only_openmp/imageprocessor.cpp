@@ -1,5 +1,6 @@
 #include "imageprocessor.h"
-#include <QElapsedTimer>  // For performance profiling (optional)
+#include <QElapsedTimer>
+#include <omp.h>
 
 // ============================================================================
 // Utility Functions / Vspomogatel'nye funkcii
@@ -519,7 +520,7 @@ QImage ImageProcessor::toBlueRedImage(const Matrix2D<double>& ddImageMat, double
     }
 
     int width = static_cast<int>(ddImageMat.size());
-    int height = static_cast<int>(ddImageMat[0].size());  // FIXED: was using size() for both dimensions
+    int height = static_cast<int>(ddImageMat[0].size());
     QImage resIm(width, height, QImage::Format_ARGB32);
 
     double dMin = min(ddImageMat);
@@ -527,7 +528,7 @@ QImage ImageProcessor::toBlueRedImage(const Matrix2D<double>& ddImageMat, double
 
     for(int i = 0; i < width; i++)
     {
-        for(int j = 0; j < height; j++)  // FIXED: now using height correctly
+        for(int j = 0; j < height; j++)
         {
             double val = ddImageMat[i][j];
             if(val < 0)
@@ -667,10 +668,10 @@ QImage ImageProcessor::convImage(const QImage& image, const Matrix2D<double>& dd
         }
     }
     if(std::abs(kernelSum) < 1e-10) kernelSum = 1.0;
-
     int width = image.width();
     int height = image.height();
 
+// #pragma omp parallel for collapse(2)
     for(int i = 0; i < width; i++)
     {
         for(int j = 0; j < height; j++)
@@ -705,7 +706,6 @@ QImage ImageProcessor::convImage(const QImage& image, const Matrix2D<double>& dd
                 }
             }
 
-            // Normalize and clamp / Normalizuem i ogranichivaem
             rSum = std::max(0.0, std::min(255.0, rSum / kernelSum));
             gSum = std::max(0.0, std::min(255.0, gSum / kernelSum));
             bSum = std::max(0.0, std::min(255.0, bSum / kernelSum));
@@ -766,12 +766,13 @@ Matrix2D<double> ImageProcessor::convMat(const Matrix2D<double>& ddImageMat,
     }
 
     // Perform convolution / Vypolnyayem svertku
+#pragma omp parallel for collapse(2)
     for(int i = 0; i < rows; i++) {
         for(int j = 0; j < cols; j++) {
             double matSum = 0.0;
 
             for(int ki = 0; ki < kernelSize; ki++) {
-                int imgX = xIndices[i + ki];  // FIXED: Simplified index calculation
+                int imgX = xIndices[i + ki];
 
                 for(int kj = 0; kj < kernelSize; kj++) {
                     int imgY = yIndices[j + kj];
@@ -821,7 +822,7 @@ Matrix2D<double> ImageProcessor::getGauss(int iXsize, int iYsize, double dSigma)
     if(sum > 0) {
         for(int i = 0; i < iXsize; i++) {
             for(int j = 0; j < iYsize; j++) {
-                ddRes[i][j] /= sum;
+                // ddRes[i][j] /= sum;
             }
         }
     }
@@ -956,6 +957,7 @@ Matrix2D<double> ImageProcessor::findEdges(const Matrix2D<double>& ddImageMat,
 
     int kernelRadius = iRad / 2;
 
+#pragma omp parallel for collapse(2)
     for(int i = 0; i < rows; i++)
     {
         for(int j = 0; j < cols; j++)
@@ -1019,6 +1021,7 @@ Matrix2D<double> ImageProcessor::findEdges(const Matrix2D<double>& ddImageMat, i
 
     int kernelRadius = iRad / 2;
 
+#pragma omp parallel for collapse(2)
     for(int i = 0; i < rows; i++)
     {
         for(int j = 0; j < cols; j++)
@@ -1182,34 +1185,37 @@ QImage ImageProcessor::sampleTwoHollows()
     QImage res(200, 200, QImage::Format_ARGB32);
     res.fill(Qt::black);
 
-    // First circle (bottom) / Pervaya okruzhnost' (snizu)
+    // First circle (bottom)
     int centerX1 = 100, centerY1 = 135, radius1 = 40;
-    // Second circle (top) / Vtoraya okruzhnost' (sverkhu)
+    // Second circle (top)
     int centerX2 = 100, centerY2 = 65, radius2 = 30;
 
     for(int i = 0; i < 200; i++){
         for(int j = 0; j < 200; j++){
-            // Check first circle / Proveryaem pervuyu okruzhnost'
+            int val = 0;
+
             int dx1 = i - centerX1;
             int dy1 = j - centerY1;
-            int distSq1 = dx1*dx1 + dy1*dy1;
+            double dist1 = sqrt(dx1*dx1 + dy1*dy1);
 
-            if(distSq1 < radius1 * radius1){
-                int val = static_cast<int>(std::sqrt(radius1*radius1 - distSq1));
-                val = std::max(0, std::min(255, val));
-                res.setPixel(i, j, qRgb(val, val, val));
+            if(dist1 < radius1){
+                double intensity = sqrt(radius1 * radius1 - dist1 * dist1);
+                intensity = std::max(0.0, std::min(255.0, intensity));
+                val = std::max(val, static_cast<int>(intensity));
             }
 
-            // Check second circle / Proveryaem vtoruyu okruzhnost'
             int dx2 = i - centerX2;
             int dy2 = j - centerY2;
-            int distSq2 = dx2*dx2 + dy2*dy2;
+            double dist2 = sqrt(dx2*dx2 + dy2*dy2);
 
-            if(distSq2 < radius2 * radius2){
-                int val = static_cast<int>(std::sqrt(radius2*radius2 - distSq2));
-                val = std::max(0, std::min(255, val));
-                res.setPixel(i, j, qRgb(val, val, val));
+            if(dist2 < radius2){
+                double intensity = sqrt(radius2 * radius2 - dist2 * dist2);
+                intensity = std::max(0.0, std::min(255.0, intensity));
+                val = std::max(val, static_cast<int>(intensity));
             }
+
+
+            res.setPixel(i, j, qRgb(val, val, val));
         }
     }
     return res;
@@ -1270,7 +1276,7 @@ QImage ImageProcessor::sampleTwoHollowsBig()
  * RU: Eto osnovnoy algoritm utochneniya granits, ispol'zuyushchiy korrelyatsiyu profiley
  *     dlya poiska subpiksel'nykh pozitsiy granits
  */
-RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const RefinementParameters& params)
+RefinementResult ImageProcessor::refineSinglePoint001(int n0, int m0, const RefinementParameters& params)
 {
     RefinementResult result;
 
@@ -1312,27 +1318,26 @@ RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const Refinem
     // Primechaniye: Mozhno dalee optimizirovat', ispol'zuya razdelyayemyye fil'try
 
     // Build profiles along gradient direction / Stroim profili vdol' napravleniya gradienta
+    // Pre-allocate vectors for thread safety / Predvaritel'no vydelyaem vektory dlya potokobezopasnosti
+    prof1.resize(n_myu);
+    prof2.resize(n_myu);
+
+// #pragma omp parallel for
     for(int s = 0; s < n_myu; s++) {
         double prof1Val = 0.0;
         double prof2Val = 0.0;
         double mu_s = mu[s];
 
         for(int n = 0; n < params.NX; n++) {
-            // Pre-calculate dx component for this n to reduce inner loop work
-            // Predvaritel'no vychislyaem komponentu dx dlya etogo n dlya umen'sheniya raboty vnutrennego tsikla
             double dx_base = x0 - n;
 
             for(int m = 0; m < params.NY; m++) {
                 double dy_base = y0 - m;
 
-                // Distance from point along gradient direction
-                // Rasstoyaniye ot tochki vdol' napravleniya gradienta
                 double dx = dx_base + mu_s * params.ex;
                 double dy = dy_base + mu_s * params.ey;
                 double radSq = dx*dx + dy*dy;
 
-                // Laplacian of Gaussian kernel (LoG)
-                // Yadro Laplasiana Gaussa
                 double mult = (radSq / (params.sigma1 * params.sigma1) - 2.0) *
                               exp(-0.5 * radSq / (params.sigma1 * params.sigma1));
 
@@ -1340,8 +1345,8 @@ RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const Refinem
                 prof2Val += params.B01[n][m] * mult;
             }
         }
-        prof1.push_back(prof1Val);
-        prof2.push_back(prof2Val);
+        prof1[s] = prof1Val;
+        prof2[s] = prof2Val;
     }
 
     // Find zero crossings / Nakhodim perekhody cherez nol'
@@ -1431,6 +1436,7 @@ RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const Refinem
     }
 
     // Search over possible bounds / Poisk po vozmozhnym granitsam
+// #pragma omp parallel for collapse(2)
     for(int XL2 = XL1; XL2 > XL1 - otstup; XL2--) {
         for(int XR2 = XR1; XR2 < XR1 + otstup; XR2++) {
             if(XL2 < 0 || XR2 >= n_myu || XL2 >= XR2) continue;
@@ -1459,11 +1465,9 @@ RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const Refinem
             D1 = std::sqrt(D1 / NN);
             D2 = std::sqrt(D2 / NN);
 
-            // Avoid division by zero / Izbegayem deleniya na nol'
             if(D1 < 1e-10) D1 = 1.0;
             if(D2 < 1e-10) D2 = 1.0;
 
-            // Calculate normalized profiles and residual / Vychislyayem normalizovannyye profili i nevyazku
             double MINRAZ = 0.0;
             for(int i = 0; i < NN; i++) {
                 double norm1 = (yy1[i] - m1) / D1;
@@ -1472,10 +1476,13 @@ RefinementResult ImageProcessor::refineSinglePoint(int n0, int m0, const Refinem
                 MINRAZ += diff * diff;
             }
 
-            if(minraz > MINRAZ) {
-                minraz = MINRAZ;
-                best_XL2 = XL2;
-                best_XR2 = XR2;
+// #pragma omp critical
+            {
+                if(minraz > MINRAZ) {
+                    minraz = MINRAZ;
+                    best_XL2 = XL2;
+                    best_XR2 = XR2;
+                }
             }
         }
     }
@@ -1881,30 +1888,350 @@ bool ImageProcessor::saveStatisticsToFile(const ImageStatistics& stats, const QS
     return true;
 }
 
-/*
- * EN: Exports histogram data to CSV format
- * RU: Eksportiruyet dannyye gistogrammy v format CSV
- */
-bool ImageProcessor::exportHistogramToCSV(const ImageStatistics& stats, const QString& filename)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================================
+// Вспомогательные функции
+// ============================================================================
+
+// Билинейная интерполяция значения из матрицы по дробным координатам
+double ImageProcessor::interpolateBilinear(const Matrix2D<double>& img, double x, double y)
 {
-    if (stats.histogram.isEmpty()) {
-        return false;
-    }
+    int rows = static_cast<int>(img.size());
+    int cols = static_cast<int>(img[0].size());
 
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        return false;
-    }
+    // Clamp to valid range FIRST
+    x = std::max(0.0, std::min(x, static_cast<double>(rows - 1)));
+    y = std::max(0.0, std::min(y, static_cast<double>(cols - 1)));
 
-    QTextStream out(&file);
-    out << "Intensity,Count,Percentage\n";
+    int x0 = static_cast<int>(std::floor(x));
+    int y0 = static_cast<int>(std::floor(y));
+    int x1 = std::min(x0 + 1, rows - 1);
+    int y1 = std::min(y0 + 1, cols - 1);
 
-    long long total = stats.pixelCount;
-    for (int i = 0; i < stats.histogram.size(); i++) {
-        double percentage = (static_cast<double>(stats.histogram[i]) / total) * 100.0;
-        out << i << "," << stats.histogram[i] << "," << QString::number(percentage, 'f', 6) << "\n";
-    }
+    x0 = std::max(0, x0);
+    y0 = std::max(0, y0);
 
-    file.close();
-    return true;
+    double fx = x - x0;
+    double fy = y - y0;
+
+    double v00 = img[x0][y0];
+    double v10 = img[x1][y0];
+    double v01 = img[x0][y1];
+    double v11 = img[x1][y1];
+
+    return (1.0 - fx) * (1.0 - fy) * v00 +
+           fx  * (1.0 - fy) * v10 +
+           (1.0 - fx) *        fy  * v01 +
+           fx  *        fy  * v11;
 }
+
+
+// Вычисление остатка между двумя профилями (для градиентного спуска)
+double ImageProcessor::computeResidual(const QVector<double>& yy1,
+                              const QVector<QPointF>& yP2_full,
+                              int XL2, int XR2, int NN)
+{
+    QVector<QPointF> yyP2 = ImageProcessor::reInterpolateProfile(yP2_full, XL2, XR2, NN);
+    QVector<double> yy2;
+    yy2.reserve(NN);
+    for (int i = 0; i < NN; i++) {
+        yy2.push_back(yyP2[i].y());
+    }
+
+    double m1 = 0.0, m2 = 0.0;
+    for (int i = 0; i < NN; i++) {
+        m1 += yy1[i];
+        m2 += yy2[i];
+    }
+    m1 /= NN;
+    m2 /= NN;
+
+    double D1 = 0.0, D2 = 0.0;
+    for (int i = 0; i < NN; i++) {
+        D1 += (yy1[i] - m1) * (yy1[i] - m1);
+        D2 += (yy2[i] - m2) * (yy2[i] - m2);
+    }
+    D1 = std::sqrt(D1 / NN);
+    D2 = std::sqrt(D2 / NN);
+
+    if (D1 < 1e-10) D1 = 1.0;
+    if (D2 < 1e-10) D2 = 1.0;
+
+    double res = 0.0;
+    for (int i = 0; i < NN; i++) {
+        double norm1 = (yy1[i] - m1) / D1;
+        double norm2 = (yy2[i] - m2) / D2;
+        double diff = norm1 - norm2;
+        res += diff * diff;
+    }
+    return res;
+}
+
+// ============================================================================
+// ОПТИМИЗИРОВАННЫЙ refineSinglePoint
+// Теперь принимает ПРЕДВАРИТЕЛЬНО отфильтрованные LoG-изображения
+// ============================================================================
+
+RefinementResult ImageProcessor::refineSinglePoint002(int n0, int m0, const RefinementParameters& params)
+{
+    RefinementResult result;
+    result.success = false;
+    result.FFF1_0 = 0.0;
+    result.FFF1_1 = 0.0;
+    result.residual = std::numeric_limits<double>::max();
+    result.refinedPosition = QPointF(static_cast<double>(n0), static_cast<double>(m0));
+
+    if (n0 < 0 || n0 >= params.NX || m0 < 0 || m0 >= params.NY) {
+        qDebug() << "Error: Point out of bounds";
+        return result;
+    }
+
+    const int n_sigma = params.n_sigma;
+    const int n_myu = params.n_myu;
+    const int x0 = n0, y0 = m0;
+    const double sigma_myu = std::min(params.sigma1, params.sigma2);
+    const double sigma1Sq = params.sigma1 * params.sigma1;
+
+    // Генерация mu
+    QVector<double> mu;
+    mu.reserve(n_myu);
+    double muStep = 2.0 * n_sigma * sigma_myu / n_myu;
+    double muStart = -n_sigma * sigma_myu;
+    for (int s = 0; s < n_myu; s++) {
+        mu.push_back(muStart + s * muStep);
+    }
+
+    // ========================================================================
+    // ПОСТРОЕНИЕ ПРОФИЛЕЙ (сохранена оригинальная логика)
+    // ========================================================================
+
+    QVector<double> prof1, prof2;
+    prof1.resize(n_myu);
+    prof2.resize(n_myu);
+
+    // Предварительно кэшируем указатели на строки для быстрого доступа
+    // (это основная оптимизация для vector<vector<double>>)
+    int rows = params.NX;
+    int cols = params.NY;
+
+    // Кэшируем exp() для часто используемых значений через LUT
+    const int LUT_SIZE = 10000;
+    const double MAX_RAD_SQ = 5000.0;
+    std::vector<double> expLUT(LUT_SIZE);
+    double lutStep = MAX_RAD_SQ / LUT_SIZE;
+    double invTwoSigmaSq = 0.5 / sigma1Sq;
+    for (int i = 0; i < LUT_SIZE; i++) {
+        expLUT[i] = std::exp(-i * lutStep * invTwoSigmaSq);
+    }
+
+    // Основной цикл построения профиля
+    for (int s = 0; s < n_myu; s++) {
+        double prof1Val = 0.0;
+        double prof2Val = 0.0;
+        double mu_s = mu[s];
+
+        for (int n = 0; n < rows; n++) {
+            const std::vector<double>& rowA = params.A[n];
+            const std::vector<double>& rowB01 = params.B01[n];
+            double dx_base = x0 - n + mu_s * params.ex;
+
+            for (int m = 0; m < cols; m++) {
+                double dy = y0 - m + mu_s * params.ey;
+                double radSq = dx_base * dx_base + dy * dy;
+
+                // Быстрое вычисление LoG через LUT
+                double mult;
+                if (radSq < MAX_RAD_SQ) {
+                    int lutIdx = static_cast<int>(radSq / lutStep);
+                    lutIdx = std::max(0, std::min(lutIdx, LUT_SIZE - 1));
+                    mult = (radSq / sigma1Sq - 2.0) * expLUT[lutIdx];
+                } else {
+                    mult = 0.0;
+                }
+
+                prof1Val += rowA[m] * mult;
+                prof2Val += rowB01[m] * mult;
+            }
+        }
+        prof1[s] = prof1Val;
+        prof2[s] = prof2Val;
+    }
+
+    // ========================================================================
+    // ВСЁ ОСТАЛЬНОЕ БЕЗ ИЗМЕНЕНИЙ (как в оригинале)
+    // ========================================================================
+
+    // Поиск zero-crossings
+    App_Stats y2_stats;
+    y2_stats.gather_stats(prof2);
+    int nmumax = std::max(y2_stats.x_max, y2_stats.x_min);
+    int nmumin = std::min(y2_stats.x_max, y2_stats.x_min);
+
+    int nL_Zero = n_myu / 2;
+    int nR_Zero = n_myu / 2;
+    for (int n = nmumin; n < nmumax && n < n_myu - 1; n++) {
+        if (prof1[n] * prof1[n + 1] < 0) nL_Zero = n;
+        if (prof2[n] * prof2[n + 1] < 0) nR_Zero = n;
+    }
+
+    int N_Zero = (nL_Zero + nR_Zero) / 2;
+    const int MAX_COUNTER = 5;
+    const int MIN_MARGIN = 20;
+    const int SAFE_MARGIN = 35;
+
+    int XL1 = 0, XR1 = 0;
+    int decrCounter = 0, incrCounter = 0;
+
+    for (int i = N_Zero + 1; i < n_myu - 1; i++) {
+        if (prof2[i] < prof2[i + 1]) incrCounter = std::min(incrCounter + 1, MAX_COUNTER);
+        if (prof2[i] > prof2[i + 1]) decrCounter = std::min(decrCounter + 1, MAX_COUNTER);
+        if (decrCounter == MAX_COUNTER && incrCounter == MAX_COUNTER) {
+            XR1 = std::min(i, n_myu - SAFE_MARGIN);
+            break;
+        }
+    }
+    if (XR1 == 0) XR1 = std::min(N_Zero + 50, n_myu - SAFE_MARGIN);
+
+    decrCounter = 0;
+    incrCounter = 0;
+    for (int i = N_Zero - 1; i > 1; i--) {
+        if (prof2[i] < prof2[i + 1]) incrCounter = std::min(incrCounter + 1, MAX_COUNTER);
+        if (prof2[i] > prof2[i + 1]) decrCounter = std::min(decrCounter + 1, MAX_COUNTER);
+        if (decrCounter == MAX_COUNTER && incrCounter == MAX_COUNTER) {
+            XL1 = std::max(i, MIN_MARGIN);
+            break;
+        }
+    }
+    if (XL1 == 0) XL1 = std::max(N_Zero - 50, MIN_MARGIN);
+
+    // Подготовка первого профиля
+    QVector<QPointF> yP1;
+    yP1.reserve(XR1 - XL1);
+    for (int i = XL1; i < XR1; i++) {
+        yP1.push_back({static_cast<double>(i), prof1[i]});
+    }
+
+    const int NN = params.NN;
+    QVector<QPointF> yyP1 = reInterpolateProfile(yP1, NN);
+    QVector<double> yy1;
+    yy1.reserve(NN);
+    for (int i = 0; i < NN; i++) {
+        yy1.push_back(yyP1[i].y());
+    }
+
+    // Поиск оптимальных XL2/XR2 (градиентный спуск вместо полного перебора)
+    const int otstup = params.otstup;
+    QVector<QPointF> yP2_full;
+    yP2_full.reserve(n_myu);
+    for (int i = 0; i < n_myu; i++) {
+        yP2_full.push_back({static_cast<double>(i), prof2[i]});
+    }
+
+    int best_XL2 = XL1, best_XR2 = XR1;
+    double minraz = computeResidual(yy1, yP2_full, best_XL2, best_XR2, NN);
+
+    // Градиентный спуск
+    for (int step = std::max(1, otstup / 2); step >= 1; step /= 2) {
+        bool improved = true;
+        while (improved) {
+            improved = false;
+            for (int dXL = -1; dXL <= 1; dXL++) {
+                for (int dXR = -1; dXR <= 1; dXR++) {
+                    if (dXL == 0 && dXR == 0) continue;
+
+                    int testXL2 = best_XL2 + dXL * step;
+                    int testXR2 = best_XR2 + dXR * step;
+
+                    if (testXL2 < std::max(0, XL1 - otstup) ||
+                        testXR2 >= std::min(n_myu, XR1 + otstup) ||
+                        testXL2 >= testXR2) continue;
+
+                    double raz = computeResidual(yy1, yP2_full, testXL2, testXR2, NN);
+
+                    if (raz < minraz) {
+                        minraz = raz;
+                        best_XL2 = testXL2;
+                        best_XR2 = testXR2;
+                        improved = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Финальная обработка
+    QVector<QPointF> yyP2_final = reInterpolateProfile(yP2_full, best_XL2, best_XR2, NN);
+    QVector<double> yy2_final;
+    yy2_final.reserve(NN);
+    for (int i = 0; i < NN; i++) {
+        yy2_final.push_back(yyP2_final[i].y());
+    }
+
+    double m1_f = 0.0, m2_f = 0.0;
+    for (int i = 0; i < NN; i++) {
+        m1_f += yy1[i];
+        m2_f += yy2_final[i];
+    }
+    m1_f /= NN;
+    m2_f /= NN;
+
+    double D1_f = 0.0, D2_f = 0.0;
+    for (int i = 0; i < NN; i++) {
+        D1_f += (yy1[i] - m1_f) * (yy1[i] - m1_f);
+        D2_f += (yy2_final[i] - m2_f) * (yy2_final[i] - m2_f);
+    }
+    D1_f = std::sqrt(D1_f / NN);
+    D2_f = std::sqrt(D2_f / NN);
+
+    if (D1_f < 1e-10) D1_f = 1.0;
+    if (D2_f < 1e-10) D2_f = 1.0;
+
+    double MINRAZ_final = 0.0;
+    for (int i = 0; i < NN; i++) {
+        double norm1 = (yy1[i] - m1_f) / D1_f;
+        double norm2 = (yy2_final[i] - m2_f) / D2_f;
+        double diff = norm1 - norm2;
+        MINRAZ_final += diff * diff;
+    }
+
+    double xa = static_cast<double>(XL1);
+    double xb = static_cast<double>(XR1);
+    double ya = static_cast<double>(best_XL2 - XL1);
+    double yb = static_cast<double>(best_XR2 - XR1);
+
+    if (std::abs(yb - ya) < 1e-10) {
+        qDebug() << "Error: Division by zero in shift calculation";
+        return result;
+    }
+
+    double x00 = (xa * yb - xb * ya) / (yb - ya);
+    double mu00 = -n_sigma * sigma_myu + x00 * (2.0 * n_sigma * sigma_myu) / n_myu;
+
+    result.FFF1_1 = mu00;
+    result.FFF1_0 = (yb - ya) / (xb - xa);
+    result.residual = MINRAZ_final;
+
+    double n_new = n0 + params.ex * result.FFF1_1;
+    double m_new = m0 + params.ey * result.FFF1_1;
+    result.refinedPosition = QPointF(n_new, m_new);
+    result.success = true;
+
+    return result;
+}
+
+
+

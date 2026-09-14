@@ -20,10 +20,13 @@
 #include "imagecalculator.h"
 #include "imageshowcasewidget.h"
 #include "imageprocessor.h"
+#include "loggerwidget.h"
 
 namespace Ui {
 class MainWindow;
 }
+
+class LoggerWidget;  // Forward declaration
 
 class MainWindow : public QMainWindow
 {
@@ -47,6 +50,14 @@ public:
 
     // Profile building points
     QVector<QPoint> profilePoints;
+    void demonstrateBlurEffect();
+    void demonstrateRadialBlurEffect();
+    void demonstrateBlurEffectForRadiographicObject();
+    void generate_wth();
+
+    // Average time benchmarking
+    void benchmarkConvolution();
+    void benchmarkRefinement();
 
 public slots:
     void on_actiongaussian_blur_triggered();
@@ -68,17 +79,21 @@ public slots:
     void on_actionsharpen_triggered();
     void on_actiontest_002_triggered();
 
-    // New slots for profile building
+    // Slots for profile building
     void on_actionProfileBetweenPoints_triggered();
     void on_actionClearProfilePoints_triggered();
     void on_actionShowStatistics_triggered();
     void on_actionExportStatistics_triggered();
-    void on_actionExportHistogram_triggered();
+
+    // Slots for log window
+    void on_actionShowLogWindow_triggered();
+    void closeEvent(QCloseEvent *event);
 
 private slots:
     void onImageClickedForProfile(const QPoint& imagePosition);
 
 private:
+    QImage drawProfileLineOnImage(const QImage& image, const QPoint& p1, const QPoint& p2, const QVector<double>& profile);
     // Helper methods
     void updateImageDisplay();
     void showStatisticsDialog(const ImageProcessor::ImageStatistics& stats);
@@ -95,6 +110,12 @@ private:
     ImageCalculator *imCalculator;
     ImageShowcaseWidget *imageWidget;
     ImageShowcaseWidget *profileImageWidget;  // Separate widget for profile visualization
+    LoggerWidget* m_loggerWidget = nullptr;
+
+    // Edge selection (moved from global scope / peremeshcheno iz global'noy oblasti)
+    QPoint mPos;
+    QVector<QPoint> selectedEdge;
+    QVector<QPoint> trueEdge;
 
     // Profile building state
     bool m_profileBuildingMode = false;

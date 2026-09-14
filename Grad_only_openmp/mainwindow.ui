@@ -55,7 +55,7 @@
     <addaction name="actionClearProfilePoints"/>
     <addaction name="actionShowStatistics"/>
     <addaction name="actionExportStatistics"/>
-    <addaction name="actionExportHistogram"/>
+    <addaction name="actionShowLogWindow"/>
    </widget>
    <widget class="QMenu" name="menusamples">
     <property name="title">
@@ -171,6 +171,11 @@
   <action name="actionExportHistogram">
    <property name="text">
     <string>export histogram</string>
+   </property>
+  </action>
+  <action name="actionShowLogWindow">
+   <property name="text">
+    <string>show log window</string>
    </property>
   </action>
  </widget>

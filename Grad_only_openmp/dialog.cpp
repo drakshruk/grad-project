@@ -12,6 +12,7 @@ Dialog::Dialog(QWidget *parent) :
     m_validator = new QDoubleValidator(this);
     m_validator->setDecimals(6);
     m_validator->setRange(-1e6, 1e6);
+    m_validator->setLocale(QLocale::c());
     ui->lineEdit->setValidator(m_validator);
 
     // Connect button box signals / Podklyuchayem signaly knopok
