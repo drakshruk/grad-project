@@ -4,9 +4,8 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/17)
 [![OpenMP](https://img.shields.io/badge/OpenMP-enabled-EE4C2C?logo=openmp&logoColor=white)](https://www.openmp.org/)
 [![QCustomPlot](https://img.shields.io/badge/QCustomPlot-2.x-1E88E5)](https://www.qcustomplot.com/)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey)]()
 
-A Qt-based desktop application for **image processing**, **gradient/Laplacian edge detection**, and **sub-pixel edge refinement** using a custom *Profile Correlation Refinement (PCR)* algorithm.
+A Qt-based desktop application for **image processing**, **gradient/Laplacian edge detection**, and **sub-pixel edge refinement** using a custom algorithm.
 
 ---
 
@@ -253,7 +252,7 @@ GitHub: [@drakshruk](https://github.com/drakshruk)
 
 # Grad — инструмент обработки изображений и уточнения границ
 
-Qt-приложение для **обработки изображений**, **градиентной и лапласианской детекции границ** и **субпиксельного уточнения положения границ** с помощью собственного алгоритма *Profile Correlation Refinement (PCR)*.
+Qt-приложение для **обработки изображений**, **градиентной и лапласианской детекции границ** и **субпиксельного уточнения положения границ** с помощью алгоритма ПЦР (поиска центров растяжения).
 
 ---
 
