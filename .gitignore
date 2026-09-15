@@ -1,6 +1,7 @@
 /build-Grad-Desktop_Qt_5_12_12_MinGW_64_bit-Debug
 *./build
-/Grad_only_openmp/build
-/Grad_only_openmp/files
-/Grad_only_openmp/.qtcreator
+/Grad/build
 /Grad/files
+/Grad/.qtcreator
+/Grad1
+/*.rar
