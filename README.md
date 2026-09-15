@@ -141,7 +141,7 @@ Mathematics (kernels, normalizations, residual formulas) was added *ad hoc* as t
 ---
 
 ## Building & Running
-
+ (not tested)
 ### Requirements
 - Qt **5.15** or **6.x** (`core`, `gui`, `widgets`, `printsupport`)
 - A C++17 compiler (MinGW, MSVC 2019+, GCC 9+, Clang 10+)
@@ -388,7 +388,7 @@ Grad/
 ---
 
 ## Сборка и запуск
-
+(не протестировано)
 ### Требования
 - Qt **5.15** или **6.x** (`core`, `gui`, `widgets`, `printsupport`)
 - Компилятор с C++17 (MinGW, MSVC 2019+, GCC 9+, Clang 10+)
